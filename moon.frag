@@ -8,7 +8,9 @@ layout(std140, binding = 0) uniform buf {
     float qt_Opacity;
     float angle;
     float tilt;
-    float sunOrbitAngle;
+    float lightDirX;
+    float lightDirY;
+    float lightDirZ;
 };
 
 layout(binding = 1) uniform sampler2D moonTex;
@@ -49,9 +51,8 @@ void main() {
     vec2 moonUV = sphereToUV(pMoon);
     vec3 color = texture(moonTex, moonUV).rgb;
 
-    // Dynamic lighting based on the Sun's orbit
-    vec3 baseSun = normalize(vec3(cos(sunOrbitAngle), 0.0, sin(sunOrbitAngle)));
-    vec3 L = rotateX(baseSun, -tilt);
+    // Dynamic lighting based on the true 3D light vector
+    vec3 L = normalize(vec3(lightDirX, lightDirY, lightDirZ));
     float NdotL = dot(N, L);
 
     // Moon has no atmosphere, so sharper terminator

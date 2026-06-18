@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "astronomy.js" as Astro
 
 ShellRoot {
     id: shell
@@ -89,16 +90,22 @@ ShellRoot {
     QtObject {
         id: state
 
-        property real sunOrbitAngle: 0
-        property real moonOrbitAngle: 0
-        property real utcDaysMod: 0
-
         property real userOffsetAngle: 0
         property real userTiltOffset: 0
         property real userLonRad: 0
         property real timeSec: 0
         property real zoomScale: 1.0
         property bool isDragging: false
+
+        property real sunRa: 0
+        property real sunDec: 0
+        property real moonRa: 0
+        property real moonDec: 0
+        property real gmst: 0
+        property real eps: 0
+        
+        property real utcDaysMod: 0
+        property string cloudUpdateFlag: "init"
 
         Behavior on userTiltOffset {
             enabled: !state.isDragging
@@ -119,23 +126,29 @@ ShellRoot {
             let ms = Date.now()
             let now = new Date(ms)
             
-            // Season (0 to 2PI). June 21 is day 172. 
-            // At 0, North Pole tilts directly at Sun.
-            let startOfYear = new Date(now.getFullYear(), 0, 1)
-            let dayOfYear = (now - startOfYear) / 86400000.0
-            state.sunOrbitAngle = ((dayOfYear - 172) / 365.25) * 2 * Math.PI
-
-            // Moon Phase (29.53 days)
-            let newMoonRef = 1781405640000 // June 14, 2026
-            let moonAgeDays = (ms - newMoonRef) / 86400000.0
-            let moonPhase = (moonAgeDays % 29.530588) / 29.530588
-            state.moonOrbitAngle = state.sunOrbitAngle - moonPhase * 2 * Math.PI
-
-            // Time of day (UTC days for exact rotation mapping)
-            state.utcDaysMod = (ms / 86400000.0) % 1.0
-            
             // Fast time for shader animations (lightning, etc)
             state.timeSec = (ms % 1000000) / 1000.0
+            
+            // Execute rigorous astronomical algorithms
+            let astro = Astro.calculateAstronomy(ms, state.userLonRad)
+            state.sunRa = astro.sun_ra
+            state.sunDec = astro.sun_dec
+            state.moonRa = astro.moon_ra
+            state.moonDec = astro.moon_dec
+            state.gmst = astro.gmst_rad
+            state.eps = astro.eps_rad
+            state.utcDaysMod = (ms / 86400000.0) % 1.0
+        }
+    }
+
+    // ── Live Cloud Map Updater ───────────────────────────
+    Timer {
+        interval: 10800000 // 3 hours in ms
+        running: true
+        repeat: true
+        onTriggered: {
+            state.cloudUpdateFlag = Date.now().toString()
+            console.log("Fetching latest real-time cloud satellite imagery...")
         }
     }
 

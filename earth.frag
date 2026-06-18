@@ -6,11 +6,14 @@ layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
     mat4 qt_Matrix;
     float qt_Opacity;
-    float seasonAngle;
-    float visualSunAngleProp;
     float utcDaysMod;
     float cameraTilt;
     float time;
+    float gmst;
+    float sunRa;
+    float sunDec;
+    float userLonRad;
+    float userOffsetAngle;
 };
 
 layout(binding = 1) uniform sampler2D earthTex;
@@ -68,31 +71,30 @@ void main() {
     // This spins the physical globe under the camera without changing the light source direction.
     vec3 earthNorm = rotateX(sphereNorm, -cameraTilt);
 
-    float tilt = 0.4084;
-    float poleDir = visualSunAngleProp - seasonAngle;
-    
-    vec3 np = vec3(
-        sin(tilt) * cos(poleDir),
-        cos(tilt),
-        sin(tilt) * sin(poleDir)
-    );
+    // The Earth's True North Pole in Equatorial Coordinates is simply (0, 1, 0).
+    vec3 np = vec3(0.0, 1.0, 0.0);
 
-    vec3 baseSunVec = normalize(vec3(cos(visualSunAngleProp), 0.0, sin(visualSunAngleProp)));
-    vec3 sunVec = rotateX(baseSunVec, -cameraTilt);
+    // Local Apparent Sidereal Time of the pixel at the center of the screen
+    float localSiderealTime = gmst + userLonRad - userOffsetAngle;
 
-    float greenwichAngle = visualSunAngleProp - (utcDaysMod - 0.5) * 2.0 * PI;
+    // Convert Sun's Right Ascension and Declination to local Cartesian vectors
+    float sunLocalRa = sunRa - localSiderealTime;
+    vec3 sunVec = normalize(vec3(sin(sunLocalRa) * cos(sunDec), sin(sunDec), cos(sunLocalRa) * cos(sunDec)));
+
+    // Calculate Greenwich's vector. Greenwich is at Longitude 0, so its local RA is just GMST.
+    float greenwichLocalRa = gmst - localSiderealTime;
+    vec3 greenwichVec = normalize(vec3(sin(greenwichLocalRa), 0.0, cos(greenwichLocalRa)));
     
-    vec3 greenwichVec = normalize(vec3(cos(greenwichAngle), 0.0, sin(greenwichAngle)));
-    greenwichVec = normalize(greenwichVec - dot(greenwichVec, np) * np);
-    
-    vec3 eastVec = normalize(cross(np, greenwichVec));
+    // East vector is 90 degrees ahead of Greenwich
+    vec3 eastVec = normalize(vec3(sin(greenwichLocalRa + PI/2.0), 0.0, cos(greenwichLocalRa + PI/2.0)));
     
     vec3 eqPlane = earthNorm - dot(earthNorm, np) * np;
     float eqLen = length(eqPlane);
     eqPlane = eqPlane / max(0.0001, eqLen);
     
-    // Longitude is angle from Greenwich
+    // Longitude is the angle along the equatorial plane relative to Greenwich
     float absoluteLon = atan(dot(eqPlane, eastVec), dot(eqPlane, greenwichVec));
+    
     float cloudLon = absoluteLon + (utcDaysMod * 0.06 * PI); // slight drift
     
     // Latitude
@@ -104,21 +106,51 @@ void main() {
     vec2 texel = vec2(1.0 / 8192.0, 1.0 / 4096.0);
     
     // Raw diffuse dot
-    float nDotL = dot(sphereNorm, sunVec);
+    float nDotL = dot(earthNorm, sunVec);
     
     // Bump mapping
     float waterMask = texture(waterTex, earthUV).r;
     float bump = texture(bumpTex, earthUV).r;
     
-    // Disable bump mapping on water to hide JPEG compression blocks
+    // Disable land bump mapping on water to hide JPEG compression blocks
     float bumpScale = 0.003 * (1.0 - waterMask); 
     
     float dbDu = (texture(bumpTex, earthUV + vec2(texel.x, 0.0)).r - bump) / texel.x;
     float dbDv = (texture(bumpTex, earthUV + vec2(0.0, texel.y)).r - bump) / texel.y;
     
-    // Apply bump mapping to the local earth normal, then rotate back to camera space for lighting
-    vec3 bumpNormLocal = normalize(earthNorm - vec3(dbDu, dbDv, 0.0) * bumpScale);
-    vec3 bumpNorm = rotateX(bumpNormLocal, cameraTilt);
+    // ── Procedural Ocean Waves (Hydrosphere Dynamics) ──
+    if (waterMask > 0.1) {
+        // High-frequency procedural waves
+        vec2 waveUV = earthUV * 15000.0;
+        float wTime = time * 3.0;
+        
+        // Directions
+        vec2 d1 = vec2(1.0, 0.5);
+        vec2 d2 = vec2(-0.7, 0.8);
+        vec2 d3 = vec2(0.3, -1.2);
+        
+        // Frequencies
+        float f1 = 1.0;
+        float f2 = 1.6;
+        float f3 = 2.4;
+        
+        // Phases
+        float p1 = dot(waveUV, d1) * f1 + wTime * 1.0;
+        float p2 = dot(waveUV, d2) * f2 + wTime * 1.3;
+        float p3 = dot(waveUV, d3) * f3 + wTime * 0.7;
+        
+        // Analytical derivatives: d(sin(phase)*0.5)/du = cos(phase) * 0.5 * dir.x * freq
+        float dwDu = (cos(p1) * d1.x * f1 + cos(p2) * d2.x * f2 + cos(p3) * d3.x * f3) * 0.5 * 0.333;
+        float dwDv = (cos(p1) * d1.y * f1 + cos(p2) * d2.y * f2 + cos(p3) * d3.y * f3) * 0.5 * 0.333;
+        
+        // Blend ocean wave normals into the bump map based on water depth mask
+        dbDu = mix(dbDu, dwDu * 0.8, waterMask);
+        dbDv = mix(dbDv, dwDv * 0.8, waterMask);
+        bumpScale = mix(bumpScale, 0.005, waterMask);
+    }
+    
+    // Apply bump mapping to the local earth normal
+    vec3 bumpNorm = normalize(earthNorm - vec3(dbDu, dbDv, 0.0) * bumpScale);
     
     float bumpDiffuse = max(dot(bumpNorm, sunVec), 0.0);
     
@@ -127,29 +159,34 @@ void main() {
     float diffuse = mix(max(nDotL, 0.0), bumpDiffuse, smoothstep(-0.1, 0.1, nDotL));
 
     // Water & Specular
-    vec3 viewVec = vec3(0.0, 0.0, 1.0);
-    vec3 halfVec = normalize(sunVec + viewVec);
+    vec3 viewVecTrue = rotateX(vec3(0.0, 0.0, 1.0), -cameraTilt);
+    vec3 halfVec = normalize(sunVec + viewVecTrue);
     float specBase = max(dot(bumpNorm, halfVec), 0.0);
-    // Softer, wider specular highlight for the ocean
-    float specular = pow(specBase, 35.0) * waterMask * 1.0;
-    // Add a broad, very soft specular for a "wet/glossy" atmosphere reflection
-    float softSpecular = pow(max(dot(sphereNorm, halfVec), 0.0), 8.0) * 0.1;
+    // Softer, wider specular highlight for the ocean (reduced intensity)
+    float specular = pow(specBase, 35.0) * waterMask * 0.4;
+    // Add a broad, very soft specular for a "wet/glossy" atmosphere reflection (drastically reduced for land)
+    float softSpecular = pow(max(dot(earthNorm, halfVec), 0.0), 8.0) * 0.02;
 
     // Day Color with Specular
     vec3 dayColor = texture(earthTex, earthUV).rgb;
     dayColor = dayColor * diffuse + vec3(1.0, 0.95, 0.8) * specular + vec3(1.0) * softSpecular;
 
     // Atmospheric Scattering (Edge Glow and Sunset)
-    float viewDot = max(dot(sphereNorm, viewVec), 0.0);
+    float viewDot = max(dot(earthNorm, viewVecTrue), 0.0);
     float atmosThickness = pow(1.0 - viewDot, 3.5);
     
     // Rayleigh scattering shifts color at sunset (when nDotL is near 0)
-    // High altitude is blue, low altitude (near terminator) is orange/red
     float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
     vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
     vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
     
-    dayColor += atmosColorBlue + atmosColorOrange;
+    // ── Stratospheric Ozone Absorption ──
+    // Ozone absorbs heavily in the Chappuis band (green/yellow/red), 
+    // leaving a distinct deep purple/blue band above the orange twilight
+    float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
+    vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
+    
+    dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
 
     // Night Color
     vec3 nightColor = texture(nightTex, earthUV).rgb * vec3(1.0, 0.9, 0.7);
@@ -176,8 +213,8 @@ void main() {
     
     // Add clouds on top
     vec3 cloudLitColor = mix(vec3(1.0, 0.6, 0.4), vec3(1.0), smoothstep(0.0, 0.3, nDotL));
-    cloudLitColor *= max(dot(sphereNorm, sunVec), 0.0); 
-    cloudLitColor += vec3(0.1, 0.15, 0.2) * (1.0 - max(dot(sphereNorm, sunVec), 0.0));
+    cloudLitColor *= max(dot(earthNorm, sunVec), 0.0); 
+    cloudLitColor += vec3(0.1, 0.15, 0.2) * (1.0 - max(dot(earthNorm, sunVec), 0.0));
     
     // ── Lightning Storms ──
     // Only happens on the dark side (terminator < 0.2), in dense clouds
@@ -189,7 +226,7 @@ void main() {
         vec2 stormFract = fract(stormGrid);
         
         // Is this cell active?
-        float stormActive = step(0.96, hash21(stormCell)); // 4% chance of a storm cluster
+        float stormActive = step(0.985, hash21(stormCell)); // 1.5% chance of a storm cluster
         
         if (stormActive > 0.0) {
             // Generate a random center for the flash within the cell
@@ -200,8 +237,8 @@ void main() {
             float flashGlow = smoothstep(0.6, 0.0, distToCenter);
             
             // Chaotic pulsing
-            float flashTime = hash21(stormCell + floor(time * 12.0));
-            float pulse = step(0.85, flashTime);
+            float flashTime = hash21(stormCell + floor(time * 10.0));
+            float pulse = step(0.90, flashTime);
             
             // TLEs (Red sprites) - occasionally tint the top of the flash red
             vec3 flashColor = mix(vec3(0.7, 0.8, 1.0), vec3(1.0, 0.2, 0.4), step(0.98, hash21(stormCell + floor(time * 3.0))));
@@ -211,10 +248,11 @@ void main() {
         }
     }
     
-    color = mix(color, cloudLitColor, cloudAlpha * max(terminator, darkSide)); // Make clouds visible at night if illuminated by lightning
-    
     // Night side clouds obscure city lights
     color = mix(color, vec3(0.01), cloudAlpha * (1.0 - terminator) * 0.8);
+    
+    // Render clouds and lightning on top
+    color = mix(color, cloudLitColor, cloudAlpha * max(terminator, darkSide));
     
     fragColor = vec4(color, qt_Opacity);
 }

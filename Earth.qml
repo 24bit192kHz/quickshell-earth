@@ -46,28 +46,53 @@ PanelWindow {
     property real zoomScale: root.solarState.zoomScale
     property real userOffsetAngle: root.solarState.userOffsetAngle
     property real userTiltOffset: root.solarState.userTiltOffset
-    property real sunOrbitAngle: root.solarState.sunOrbitAngle
-    property real moonOrbitAngle: root.solarState.moonOrbitAngle
     property real utcDaysMod: root.solarState.utcDaysMod
 
-    // ── Visual Angles (Camera decoupling) ────────────────
-    // Dynamically calculate the Sun's position based on real-world time at the user's longitude
-    property real visualSunAngle: root.solarState.userLonRad + Math.PI / 2.0 + root.userOffsetAngle + (root.utcDaysMod - 0.5) * 2.0 * Math.PI
-    property real visualMoonAngle: root.moonOrbitAngle - root.sunOrbitAngle + visualSunAngle
+    // ── High Precision Astronomical Coordinates ────────────────
+    property real sunRa: root.solarState.sunRa
+    property real sunDec: root.solarState.sunDec
+    property real moonRa: root.solarState.moonRa
+    property real moonDec: root.solarState.moonDec
+    property real gmst: root.solarState.gmst
+    property real eps: root.solarState.eps
+    
+    // Local Apparent Sidereal Time (LAST) at the center of the screen
+    // userOffsetAngle is included so dragging the mouse orbits the camera, changing time-of-day perspective.
+    property real localSiderealTime: gmst + root.solarState.userLonRad - root.userOffsetAngle
+    
+    // Convert Equatorial (RA/Dec) to Local Camera Cartesian
+    // Camera is looking down -Z axis, at RA = localSiderealTime, Dec = 0
+    property real sunLocalRa: sunRa - localSiderealTime
+    property real baseSunX: Math.sin(sunLocalRa) * Math.cos(sunDec) * root.sunDistance
+    property real baseSunY: Math.sin(sunDec) * root.sunDistance
+    // Positive Z so that when sunLocalRa=0 (camera between Sun and Earth), Sun is behind the camera (+Z)
+    property real baseSunZ: Math.cos(sunLocalRa) * Math.cos(sunDec) * root.sunDistance
+    
+    property real moonLocalRa: moonRa - localSiderealTime
+    property real baseMoonX: Math.sin(moonLocalRa) * Math.cos(moonDec) * root.moonDistance
+    property real baseMoonY: Math.sin(moonDec) * root.moonDistance
+    property real baseMoonZ: Math.cos(moonLocalRa) * Math.cos(moonDec) * root.moonDistance
+
+    // ── Camera Projection ──────────────────────────────
+    property real cameraTilt: root.solarState.userTiltOffset + Math.PI / 6.0 // Look down slightly
+
+    // Apply Camera Tilt to Celestial Bodies
+    // We intentionally decouple the Sun and Moon from the camera tilt so they remain
+    // beautifully framed in the background sky rather than sweeping wildly off-screen.
+    property real sunX3D: baseSunX
+    property real sunY3D: baseSunY
+    property real sunZ3D: baseSunZ
+
+    property real moonX3D: baseMoonX
+    property real moonY3D: baseMoonY
+    property real moonZ3D: baseMoonZ
+
 
     // ── 3D Scene Properties ──────────────────────────────
     property real orbitRadius: root.baseSize * 0.9
     property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
     property real sunDistance: root.baseSize * 6.0  // True distance to the Sun
-    property real cameraTilt: root.solarState.userTiltOffset * Math.PI
-
-    // ── Moon 3D & Perspective ────────────────────────────
-    property real baseMoonX: Math.cos(root.visualMoonAngle) * root.orbitRadius
-    property real baseMoonZ: Math.sin(root.visualMoonAngle) * root.orbitRadius
-    
-    property real moonX3D: baseMoonX
-    property real moonY3D: baseMoonZ * Math.sin(root.cameraTilt)
-    property real moonZ3D: baseMoonZ * Math.cos(root.cameraTilt)
+    property real moonDistance: root.baseSize * 2.0 // True distance to the Moon
 
     property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
     property real moonDistToCamera: root.cameraZ - root.moonZ3D
@@ -77,13 +102,7 @@ PanelWindow {
     property real baseMoonSize: root.baseSize * 0.27
     property real vMoonSize: root.baseMoonSize * root.zoomScale * root.moonProjScale
 
-    // ── Sun 3D & Perspective ─────────────────────────────
-    property real baseSunX: Math.cos(root.visualSunAngle) * root.sunDistance
-    property real baseSunZ: Math.sin(root.visualSunAngle) * root.sunDistance
     
-    property real sunX3D: baseSunX
-    property real sunY3D: baseSunZ * Math.sin(root.cameraTilt)
-    property real sunZ3D: baseSunZ * Math.cos(root.cameraTilt)
 
     property bool sunInFrontOfCamera: root.sunZ3D < root.cameraZ
     property real sunDistToCamera: root.cameraZ - root.sunZ3D
@@ -99,15 +118,29 @@ PanelWindow {
     property real vEarthY: toLocalY(-root.vEarthSize / 2)
 
     property real vMoonX: toLocalX(root.moonProjX * root.zoomScale - root.vMoonSize / 2)
-    property real vMoonY: toLocalY(root.moonY3D * root.zoomScale * root.moonProjScale - root.vMoonSize / 2)
+    property real vMoonY: toLocalY(-root.moonY3D * root.zoomScale * root.moonProjScale - root.vMoonSize / 2)
 
     property real vSunX: toLocalX(root.sunProjX * root.zoomScale - root.vSunSize / 2)
-    property real vSunY: toLocalY(root.sunY3D * root.zoomScale * root.sunProjScale - root.vSunSize / 2 + root.baseSize * 0.16 * root.zoomScale * root.sunProjScale)
+    property real vSunY: toLocalY(-root.sunY3D * root.zoomScale * root.sunProjScale - root.vSunSize / 2 + root.baseSize * 0.16 * root.zoomScale * root.sunProjScale)
 
-    mask: Region {
-        Region { x: root.vSunX; y: root.vSunY; width: root.vSunSize; height: root.vSunSize }
-        Region { x: root.vEarthX; y: root.vEarthY; width: root.vEarthSize; height: root.vEarthSize }
-        Region { x: root.vMoonX; y: root.vMoonY; width: root.vMoonSize; height: root.vMoonSize }
+    // Wayland mask removed to allow the full-screen background to render.
+    
+    // ── Global Background (Dynamic Equirectangular Panorama) ──
+    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("8k_stars_milky_way.jpg"); visible: false }
+
+    ShaderEffect {
+        id: bgSphere
+        anchors.fill: parent
+        z: -10
+
+        property real localSiderealTime: root.localSiderealTime
+        property real userTiltOffset: root.userTiltOffset
+        property real aspect: root.width / Math.max(1.0, root.height)
+
+        property var bgTex: milkyWayTexSrc
+
+        vertexShader: "stars.vert.qsb"
+        fragmentShader: "stars.frag.qsb"
     }
 
     // ── Interaction ──────────────────────────────────────
@@ -130,11 +163,15 @@ PanelWindow {
                 let dx = mouse.x - lastX
                 let dy = mouse.y - lastY
                 
-                root.solarState.userOffsetAngle -= dx / 500.0
+                root.solarState.userOffsetAngle += dx / 500.0
                 root.solarState.userTiltOffset += dy / 500.0
 
-                if (root.solarState.userTiltOffset > 0.5) root.solarState.userTiltOffset = 0.5
-                if (root.solarState.userTiltOffset < -0.5) root.solarState.userTiltOffset = -0.5
+                // Allow tilting all the way to the poles (Math.PI / 2)
+                // We subtract the base camera tilt (Math.PI / 6) to stop exactly at the poles
+                let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0)
+                let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0)
+                if (root.solarState.userTiltOffset > maxTilt) root.solarState.userTiltOffset = maxTilt
+                if (root.solarState.userTiltOffset < minTilt) root.solarState.userTiltOffset = minTilt
 
                 lastX = mouse.x
                 lastY = mouse.y
@@ -159,7 +196,12 @@ PanelWindow {
 
     // ── Textures ─────────────────────────────────────────
     Image { id: earthTexSrc; source: Qt.resolvedUrl("earth_8k.jpg"); visible: false }
-    Image { id: cloudTexSrc; source: Qt.resolvedUrl("clouds_8k.jpg"); visible: false }
+    // Fetch live global cloud composite generated from weather satellites (updated every 3 hours)
+    Image { 
+        id: cloudTexSrc; 
+        source: "https://clouds.matteason.co.uk/images/8192x4096/clouds.jpg?v=" + root.solarState.cloudUpdateFlag; 
+        visible: false 
+    }
     Image { id: nightTexSrc; source: Qt.resolvedUrl("night_8k.jpg"); visible: false }
     Image { id: bumpTexSrc; source: Qt.resolvedUrl("elev_bump_8k.jpg"); visible: false }
     Image { id: waterTexSrc; source: Qt.resolvedUrl("water_8k.png"); visible: false }
@@ -183,9 +225,6 @@ PanelWindow {
         }
         visible: opacity > 0
 
-        property real angle: 0 // handled by shader internally
-        property real sunOrbitAngle: root.visualSunAngle
-
         vertexShader: "sun.vert.qsb"
         fragmentShader: "sun.frag.qsb"
     }
@@ -197,11 +236,15 @@ PanelWindow {
         width: root.vEarthSize; height: root.vEarthSize
         z: 0
 
-        property real seasonAngle: root.sunOrbitAngle
-        property real visualSunAngleProp: root.visualSunAngle
         property real utcDaysMod: root.utcDaysMod
         property real cameraTilt: root.cameraTilt
+
         property real time: root.solarState.timeSec
+        property real gmst: root.solarState.gmst
+        property real sunRa: root.solarState.sunRa
+        property real sunDec: root.solarState.sunDec
+        property real userLonRad: root.solarState.userLonRad
+        property real userOffsetAngle: root.userOffsetAngle
 
         property var earthTex: earthTexSrc
         property var cloudTex: cloudTexSrc
@@ -220,9 +263,11 @@ PanelWindow {
         width: root.vMoonSize; height: root.vMoonSize
         z: root.moonZ3D < 0 ? -1 : 1
 
-        property real angle: -((root.visualMoonAngle) / (Math.PI * 2))
-        property real tilt: (0 + root.userTiltOffset * 180.0) * Math.PI / 180.0
-        property real sunOrbitAngle: root.visualSunAngle
+        property real angle: -(root.moonRa / (Math.PI * 2))
+        property real tilt: root.userTiltOffset * Math.PI
+        property real lightDirX: root.sunX3D - root.moonX3D
+        property real lightDirY: root.sunY3D - root.moonY3D
+        property real lightDirZ: root.sunZ3D - root.moonZ3D
 
         property var moonTex: moonTexSrc
 
