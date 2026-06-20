@@ -18,3 +18,6 @@ __pycache__/
 
 # Allow small icon or specific files if needed
 !icon.png
+.wrangler/
+r2-tiles.db
+tiles.db

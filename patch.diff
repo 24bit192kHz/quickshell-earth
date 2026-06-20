@@ -1,0 +1,108 @@
+--- assets/shaders/earth.frag
++++ assets/shaders/earth.frag
+@@ -29,2 +29,3 @@
+ uniform float cloudOpacity;
++uniform bool isEarth;
+ 
+@@ -101,3 +102,3 @@
+     
+-    float waterMask = textureGrad(waterTex, earthUV, dx, dy).r;
++    float waterMask = isEarth ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
+     
+@@ -106,3 +107,3 @@
+     
+-    float bump = textureGrad(bumpTex, earthUV, dx, dy).r;
++    float bump = isEarth ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
+     float bumpDu = bump;
+@@ -113,3 +114,5 @@
+     
+-    if (seamDist < 0.001) {
++    if (!isEarth) {
++        // No bump mapping
++    } else if (seamDist < 0.001) {
+         float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
+@@ -155,14 +158,16 @@
+     // ── Atmospheric Scattering ──
+-    // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
+-    // in screen-space, independent of camera tilt.
+-    float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
+-    
+-    float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
+-    vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
+-    vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
+-    
+-    // ── Stratospheric Ozone Absorption ──
+-    float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
+-    vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
+-    
+-    dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
++    if (isEarth) {
++        // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
++        // in screen-space, independent of camera tilt.
++        float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
++        
++        float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
++        vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
++        vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
++        
++        // ── Stratospheric Ozone Absorption ──
++        float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
++        vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
++        
++        dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
++    }
+ 
+@@ -170,23 +175,25 @@
+-    vec3 nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
+-    
+-    if (seamDist < 0.001) {
+-        float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
+-        vec2 altUV = vec2(altX, earthUV.y);
+-        float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
+-        nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
+-    }
+-    
+-    // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
+-    // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
+-    // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
+-    float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
+-    float highResMask = smoothstep(0.1, 0.7, earthLuma);
+-    
+-    // We only sharpen the intensely bright parts of the night map (the lights)
+-    // To prevent the faint blue land background from being modified, we only apply the mask where the night map is bright.
+-    float nightBrightness = dot(nightColor, vec3(0.333));
+-    float isLightMask = smoothstep(0.05, 0.2, nightBrightness);
+-    
+-    // Blend the sharpening effect in
+-    float finalSharpening = mix(1.0, mix(1.0, highResMask, isLightMask), patchBlendFactor);
+-    nightColor *= finalSharpening;
+-    
+-    nightColor *= 2.0;
++    vec3 nightColor = vec3(0.0);
++    if (isEarth) {
++        nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
++        
++        if (seamDist < 0.001) {
++            float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
++            vec2 altUV = vec2(altX, earthUV.y);
++            float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
++            nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
++        }
++        
++        // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
++        // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
++        // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
++        float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
++        float highResMask = smoothstep(0.1, 0.7, earthLuma);
++        
++        // We only sharpen the intensely bright parts of the night map (the lights)
++        // To prevent the faint blue land background from being modified, we only apply the mask where the night map is bright.
++        float nightBrightness = dot(nightColor, vec3(0.333));
++        float isLightMask = smoothstep(0.05, 0.2, nightBrightness);
++        
++        // Blend the sharpening effect in
++        float finalSharpening = mix(1.0, mix(1.0, highResMask, isLightMask), patchBlendFactor);
++        nightColor *= finalSharpening;
++        
++        nightColor *= 2.0;
++    }

@@ -1,0 +1,37 @@
+--- assets/shaders/earth.frag
++++ assets/shaders/earth.frag
+@@ -107,3 +108,3 @@
+     
+-    float bump = textureGrad(bumpTex, earthUV, dx, dy).r;
++    float bump = isEarth ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
+     float bumpDu = bump;
+@@ -158,14 +161,16 @@
+     // ── Atmospheric Scattering ──
+-    // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
+-    // in screen-space, independent of camera tilt.
+-    float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
+-    
+-    float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
+-    vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
+-    vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
+-    
+-    // ── Stratospheric Ozone Absorption ──
+-    float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
+-    vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
+-    
+-    dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
++    if (isEarth) {
++        // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
++        // in screen-space, independent of camera tilt.
++        float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
++        
++        float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
++        vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
++        vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
++        
++        // ── Stratospheric Ozone Absorption ──
++        float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
++        vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
++        
++        dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
++    }
