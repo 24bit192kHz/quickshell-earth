@@ -94,7 +94,7 @@ PanelWindow {
     property real orbitRadius: root.baseSize * 0.9
     property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
     property real sunDistance: root.baseSize * 6.0  // True distance to the Sun
-    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 16.0 : root.baseSize * 2.0 // True distance to the Moon
+    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 221.2 : root.baseSize * 2.0 // True distance to the Moon
 
     property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
     property real moonDistToCamera: root.cameraZ - root.moonZ3D
@@ -491,6 +491,7 @@ PanelWindow {
         property var moonTex: root.solarState.activePlanet === "moon" ? earthOnlyTexSrc : moonTexSrc
         property var cloudTex: cloudTexSrc // Passed only when the shader needs it
         property var nightTex: nightTexSrc
+        property real time: root.solarState.timeSec
 
         vertexShader: "../assets/shaders/moon.vert.qsb"
         fragmentShader: root.solarState.activePlanet === "moon" ? "../assets/shaders/satellite_earth.frag.qsb" : "../assets/shaders/moon.frag.qsb"
