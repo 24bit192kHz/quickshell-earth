@@ -72,6 +72,11 @@ class TileHandler(BaseHTTPRequestHandler):
         pass
 
 def background_setup(port):
+    # Self-heal legacy corrupted databases (a full DB is >2GB, anything under 100MB is broken)
+    if os.path.exists(DB_FILE) and os.path.getsize(DB_FILE) < 100 * 1024 * 1024:
+        print("Notice: Detected incomplete/corrupted tiles.db. Self-healing by deleting it...")
+        os.remove(DB_FILE)
+
     if not os.path.exists(DB_FILE):
         if not os.path.exists("tiles_esri") or not os.path.exists(".download_complete"):
             print("Notice: High-res tiles not complete. Launching background download (this may take a while to resume/finish).")
