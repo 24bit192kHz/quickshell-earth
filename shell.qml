@@ -161,14 +161,6 @@ ShellRoot {
         property real utcDaysMod: 0
         property string cloudUpdateFlag: "init"
 
-        Behavior on userTiltOffset {
-            enabled: !state.isDragging && !state.issModeActive
-            SpringAnimation { spring: 0.4; damping: 0.15; mass: 2.0; epsilon: 0.001 }
-        }
-
-        Behavior on zoomScale {
-            NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-        }
     }
 
 
