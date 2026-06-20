@@ -17,6 +17,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 patchBounds;
     float patchReady;
     float cloudOpacity;
+    bool isEarth;
 };
 
 layout(binding = 1) uniform sampler2D earthTex;
@@ -151,13 +152,13 @@ void main() {
     }
     
     // ── Surface Data ──
-    float waterMask = textureGrad(waterTex, earthUV, dx, dy).r;
-    float bump = textureGrad(bumpTex, earthUV, dx, dy).r;
+    float waterMask = isEarth ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
+    float bump = isEarth ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
     
     // ── Seamless Date Line Blending ──
     // Only runs for the ~0.1% of pixels right at the seam
     float seamDist = min(earthUV.x, 1.0 - earthUV.x);
-    if (seamDist < 0.001) {
+    if (isEarth && seamDist < 0.001) {
         float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
         vec2 altUV = vec2(altX, earthUV.y);
         float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
@@ -175,10 +176,10 @@ void main() {
     duUV.x = fract_safe(duUV.x);
     vec2 dvUV = earthUV + vec2(0.0, texel.y);
     
-    float bumpDu = textureGrad(bumpTex, duUV, dx, dy).r;
-    float bumpDv = textureGrad(bumpTex, dvUV, dx, dy).r;
+    float bumpDu = isEarth ? textureGrad(bumpTex, duUV, dx, dy).r : 0.0;
+    float bumpDv = isEarth ? textureGrad(bumpTex, dvUV, dx, dy).r : 0.0;
     
-    if (seamDist < 0.001) {
+    if (isEarth && seamDist < 0.001) {
         float altXdu = duUV.x < 0.5 ? 1.0 : 0.0;
         float blendDu = 0.5 + 0.5 * (min(duUV.x, 1.0 - duUV.x) / 0.001);
         bumpDu = mix(textureGrad(bumpTex, vec2(altXdu, duUV.y), dx, dy).r, bumpDu, blendDu);
@@ -229,46 +230,52 @@ void main() {
     vec3 dayColor = earthColor * diffuse + vec3(1.0, 0.95, 0.8) * specular + vec3(1.0) * softSpecular;
 
     // ── Atmospheric Scattering ──
-    // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
-    // in screen-space, independent of camera tilt.
-    float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
-    
-    float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
-    vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
-    vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
-    
-    // ── Stratospheric Ozone Absorption ──
-    float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
-    vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
-    
-    dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
+    if (isEarth) {
+        // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
+        // in screen-space, independent of camera tilt.
+        float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
+        
+        float twilight = smoothstep(-0.05, 0.0, nDotL) * (1.0 - smoothstep(0.0, 0.05, nDotL));
+        vec3 atmosColorBlue = vec3(0.3, 0.6, 1.0) * atmosThickness * smoothstep(-0.2, 0.5, nDotL) * 1.2;
+        vec3 atmosColorOrange = vec3(1.0, 0.4, 0.1) * atmosThickness * twilight * 1.5;
+        
+        // ── Stratospheric Ozone Absorption ──
+        float ozoneBand = smoothstep(-0.15, -0.05, nDotL) * (1.0 - smoothstep(0.0, 0.2, nDotL));
+        vec3 ozoneColor = vec3(0.3, 0.1, 0.8) * atmosThickness * ozoneBand * 1.8;
+        
+        dayColor += atmosColorBlue + atmosColorOrange + ozoneColor;
+    }
 
     // ── Night City Lights ──
-    vec3 nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
+    vec3 nightColor = vec3(0.0);
     
-    if (seamDist < 0.001) {
-        float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
-        vec2 altUV = vec2(altX, earthUV.y);
-        float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
-        nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
+    if (isEarth) {
+        nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
+        
+        if (seamDist < 0.001) {
+            float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
+            vec2 altUV = vec2(altX, earthUV.y);
+            float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
+            nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
+        }
+        
+        // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
+        // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
+        // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
+        float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
+        float highResMask = smoothstep(0.1, 0.7, earthLuma);
+        
+        // We only sharpen the intensely bright parts of the night map (the lights)
+        // To prevent the faint blue land background from being modified, we only apply the mask where the night map is bright.
+        float nightBrightness = dot(nightColor, vec3(0.333));
+        float isLightMask = smoothstep(0.05, 0.2, nightBrightness);
+        
+        // Blend the sharpening effect in
+        float finalSharpening = mix(1.0, mix(1.0, highResMask, isLightMask), patchBlendFactor);
+        nightColor *= finalSharpening;
+        
+        nightColor *= 2.0;
     }
-    
-    // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
-    // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
-    // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
-    float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
-    float highResMask = smoothstep(0.1, 0.7, earthLuma);
-    
-    // We only sharpen the intensely bright parts of the night map (the lights)
-    // To prevent the faint blue land background from being modified, we only apply the mask where the night map is bright.
-    float nightBrightness = dot(nightColor, vec3(0.333));
-    float isLightMask = smoothstep(0.05, 0.2, nightBrightness);
-    
-    // Blend the sharpening effect in
-    float finalSharpening = mix(1.0, mix(1.0, highResMask, isLightMask), patchBlendFactor);
-    nightColor *= finalSharpening;
-    
-    nightColor *= 2.0;
 
     // ── Day/Night Transition ──
     float terminator = smoothstep(-0.15, 0.15, nDotL);

@@ -268,7 +268,12 @@ PanelWindow {
     // Depth handled by perspective projection above
 
     // ── Textures ─────────────────────────────────────────
-    Image { id: earthTexSrc; source: Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg"); mipmap: true; visible: false }
+    Image { 
+        id: earthTexSrc; 
+        source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg"); 
+        mipmap: true; 
+        visible: false 
+    }
     Image { id: nightTexSrc; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: bumpTexSrc; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: waterTexSrc; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
@@ -401,6 +406,8 @@ PanelWindow {
         width: root.vEarthSize; height: root.vEarthSize
         z: 0
 
+        property bool isEarth: root.solarState.activePlanet === "earth"
+
         property real utcDaysMod: root.utcDaysMod
         property real cameraTilt: root.cameraTilt
 
@@ -428,6 +435,9 @@ PanelWindow {
     // ── Moon ─────────────────────────────────────────────
     ShaderEffect {
         id: moonSphere
+        
+        visible: root.solarState.activePlanet === "earth"
+        
         x: root.vMoonX; y: root.vMoonY
         width: root.vMoonSize; height: root.vMoonSize
         z: root.moonZ3D < 0 ? -1 : 1
