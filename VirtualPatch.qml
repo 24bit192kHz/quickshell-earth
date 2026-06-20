@@ -66,18 +66,41 @@ Item {
         let ty_start = Math.max(0, Math.floor(px_minY / 512));
         let ty_end = Math.min(numTilesY - 1, Math.floor(px_maxY / 512));
 
-        tilesModel.clear();
-        
         // Prevent too many tiles if something goes wrong
         if ((tx_end - tx_start + 1) * (ty_end - ty_start + 1) > 100) return;
 
+        // Build a set of what is currently in the model
+        let currentTiles = {};
+        for (let i = 0; i < tilesModel.count; i++) {
+            let item = tilesModel.get(i);
+            currentTiles[item.zLevel + "_" + item.tx + "_" + item.ty] = i;
+        }
+
+        let newTiles = {};
+
         for (let tx = tx_start; tx <= tx_end; tx++) {
             for (let ty = ty_start; ty <= ty_end; ty++) {
-                tilesModel.append({
-                    "tx": tx,
-                    "ty": ty,
-                    "zLevel": root.zLevel
-                });
+                let key = root.zLevel + "_" + tx + "_" + ty;
+                newTiles[key] = true;
+                
+                if (currentTiles[key] === undefined) {
+                    // Not in model, add it!
+                    tilesModel.append({
+                        "tx": tx,
+                        "ty": ty,
+                        "zLevel": root.zLevel
+                    });
+                }
+            }
+        }
+
+        // Remove old tiles that are no longer needed
+        // Iterate backwards because we are removing items
+        for (let i = tilesModel.count - 1; i >= 0; i--) {
+            let item = tilesModel.get(i);
+            let key = item.zLevel + "_" + item.tx + "_" + item.ty;
+            if (newTiles[key] === undefined) {
+                tilesModel.remove(i);
             }
         }
     }
