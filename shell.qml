@@ -61,7 +61,7 @@ ShellRoot {
     // ── Local SQLite Tile Server ─────────────────────────
     Process {
         id: tileServerProc
-        command: ["python3", root.dir + "/server.py"]
+        command: ["python3", Qt.resolvedUrl("server.py").toString().replace("file://", "")]
         running: true
         
         stdout: SplitParser {
