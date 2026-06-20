@@ -155,6 +155,7 @@ ShellRoot {
         property var planets: ["earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune"]
         property int activePlanetIndex: Math.max(0, planets.indexOf(Quickshell.env("PLANET")))
         property string activePlanet: planets[activePlanetIndex]
+        onActivePlanetChanged: shell.forceAstroUpdate()
 
         property real sunRa: 0
         property real sunDec: 0
@@ -198,6 +199,19 @@ ShellRoot {
         }
     }
 
+    function forceAstroUpdate() {
+        let ms = Date.now()
+        lastAstroCalc = ms
+        let astro = Astro.calculateAstronomy(ms, state.userLonRad, state.activePlanet)
+        state.sunRa = astro.sun_ra
+        state.sunDec = astro.sun_dec
+        state.moonRa = astro.moon_ra
+        state.moonDec = astro.moon_dec
+        state.gmst = astro.gmst_rad
+        state.eps = astro.eps_rad
+        state.utcDaysMod = (ms / 86400000.0) % 1.0
+    }
+
     // ── Real-Time Astronomy Engine ───────────────────────
     property real lastAstroCalc: 0
     Timer {
@@ -210,17 +224,7 @@ ShellRoot {
             
             // Only update fast animations and astro math if flying or 1 second has passed
             if (ms - lastAstroCalc > 1000 || state.issModeActive) {
-                lastAstroCalc = ms
-                
-                // Execute rigorous astronomical algorithms
-                let astro = Astro.calculateAstronomy(ms, state.userLonRad, state.activePlanet)
-                state.sunRa = astro.sun_ra
-                state.sunDec = astro.sun_dec
-                state.moonRa = astro.moon_ra
-                state.moonDec = astro.moon_dec
-                state.gmst = astro.gmst_rad
-                state.eps = astro.eps_rad
-                state.utcDaysMod = (ms / 86400000.0) % 1.0
+                shell.forceAstroUpdate()
             }
             
             // Execute ISS Orbital Dynamics
