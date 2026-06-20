@@ -1,7 +1,8 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
-import "astronomy.js" as Astro
+import "core/astronomy.js" as Astro
+import "core"
 
 ShellRoot {
     id: shell

@@ -75,11 +75,11 @@ def background_setup():
     if not os.path.exists(DB_FILE):
         if not os.path.exists("tiles_esri") or len(os.listdir("tiles_esri")) == 0:
             print("Notice: High-res tiles not found. Launching background download (this may take a while).")
-            subprocess.run(["python3", "download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+            subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
         
         import shutil
         print("Packing downloaded tiles into SQLite database...")
-        subprocess.run(["python3", "pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+        subprocess.run(["python3", "scripts/pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
         
         print("Cleaning up raw tile directory to save space...")
         try:
