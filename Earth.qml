@@ -228,56 +228,52 @@ PanelWindow {
         tileServerUrl: root.solarState.tileServerUrl
     }
 
-    Timer {
-        id: patchUpdateTimer
-        interval: 50
-        running: true
-        repeat: true
-        onTriggered: {
-            let max_visible_x = root.width / vEarthSize;
-            let max_visible_y = root.height / vEarthSize;
-            
-            if (max_visible_x > 0.8 || max_visible_y > 0.8) {
-                root.patchMinU = 0; root.patchMaxU = 0; root.patchMinV = 0; root.patchMaxV = 0;
-                return;
-            }
-            
-            let lon_range = Math.asin(Math.min(1.0, max_visible_x));
-            let lat_range = Math.asin(Math.min(1.0, max_visible_y));
-            
-            let center_lon = root.solarState.userLonRad - root.solarState.userOffsetAngle;
-            let center_lat = root.cameraTilt;
-            
-            let u_center = (center_lon / (2.0 * Math.PI)) + 0.5;
-            u_center = u_center - Math.floor(u_center);
-            
-            // Web Mercator v_center
-            let maxLat = 1.4844; // ~85.05 degrees
-            let clamped_lat = Math.max(-maxLat, Math.min(maxLat, center_lat));
-            let v_center = 0.5 - Math.log(Math.tan(Math.PI / 4.0 + clamped_lat / 2.0)) / (2.0 * Math.PI);
-            
-            // Fetch a patch slightly larger than the screen to avoid edge pop-in
-            let bufferU = (lon_range / (2.0 * Math.PI)) * 1.5;
-            // Web Mercator V scales by 1/cos(lat)
-            let mercator_scale = 1.0 / Math.max(0.01, Math.cos(clamped_lat));
-            let bufferV = (lat_range / (2.0 * Math.PI)) * 1.5 * mercator_scale;
-            
-            let minU = u_center - bufferU;
-            let maxU = u_center + bufferU;
-            let minV = Math.max(0.0, v_center - bufferV);
-            let maxV = Math.min(1.0, v_center + bufferV);
-            
-            // Allow patches to wrap across the Date Line (minU < 0.0 or maxU > 1.0)
-            if (true) {
-                // Update VirtualPatch bounds smoothly
-                root.patchMinU = minU;
-                root.patchMaxU = maxU;
-                root.patchMinV = minV;
-                root.patchMaxV = maxV;
-            } else {
-                root.patchMinU = 0; root.patchMaxU = 0;
-            }
+    onCameraTiltChanged: updatePatchBounds()
+    onWidthChanged: updatePatchBounds()
+    onHeightChanged: updatePatchBounds()
+    onVEarthSizeChanged: updatePatchBounds()
+    
+    Connections {
+        target: root.solarState
+        function onUserOffsetAngleChanged() { root.updatePatchBounds() }
+        function onUserLonRadChanged() { root.updatePatchBounds() }
+    }
+
+    function updatePatchBounds() {
+        if (!root.solarState) return;
+        
+        let max_visible_x = root.width / vEarthSize;
+        let max_visible_y = root.height / vEarthSize;
+        
+        if (max_visible_x > 0.8 || max_visible_y > 0.8) {
+            root.patchMinU = 0; root.patchMaxU = 0; root.patchMinV = 0; root.patchMaxV = 0;
+            return;
         }
+        
+        let lon_range = Math.asin(Math.min(1.0, max_visible_x));
+        let lat_range = Math.asin(Math.min(1.0, max_visible_y));
+        
+        let center_lon = root.solarState.userLonRad - root.solarState.userOffsetAngle;
+        let center_lat = root.cameraTilt;
+        
+        let u_center = (center_lon / (2.0 * Math.PI)) + 0.5;
+        u_center = u_center - Math.floor(u_center);
+        
+        // Web Mercator v_center
+        let maxLat = 1.4844; // ~85.05 degrees
+        let clamped_lat = Math.max(-maxLat, Math.min(maxLat, center_lat));
+        let v_center = 0.5 - Math.log(Math.tan(Math.PI / 4.0 + clamped_lat / 2.0)) / (2.0 * Math.PI);
+        
+        // Fetch a patch slightly larger than the screen to avoid edge pop-in
+        let bufferU = (lon_range / (2.0 * Math.PI)) * 1.5;
+        // Web Mercator V scales by 1/cos(lat)
+        let mercator_scale = 1.0 / Math.max(0.01, Math.cos(clamped_lat));
+        let bufferV = (lat_range / (2.0 * Math.PI)) * 1.5 * mercator_scale;
+        
+        root.patchMinU = u_center - bufferU;
+        root.patchMaxU = u_center + bufferU;
+        root.patchMinV = Math.max(0.0, v_center - bufferV);
+        root.patchMaxV = Math.min(1.0, v_center + bufferV);
     }
 
     // ── Removed Python HTTP patch images ────────────────
