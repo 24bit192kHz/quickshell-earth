@@ -252,6 +252,14 @@ void main() {
         float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
         nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
     }
+    
+    // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
+    // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
+    // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
+    float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
+    float highResMask = smoothstep(0.05, 0.5, earthLuma) * 1.5;
+    nightColor *= mix(1.0, highResMask, patchReady);
+    
     nightColor *= 2.0;
 
     // ── Day/Night Transition ──
