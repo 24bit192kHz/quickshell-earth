@@ -213,7 +213,7 @@ ShellRoot {
                 lastAstroCalc = ms
                 
                 // Execute rigorous astronomical algorithms
-                let astro = Astro.calculateAstronomy(ms, state.userLonRad)
+                let astro = Astro.calculateAstronomy(ms, state.userLonRad, state.activePlanet)
                 state.sunRa = astro.sun_ra
                 state.sunDec = astro.sun_dec
                 state.moonRa = astro.moon_ra
