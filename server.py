@@ -71,7 +71,7 @@ class TileHandler(BaseHTTPRequestHandler):
         # Suppress logging to keep terminal clean
         pass
 
-def background_setup():
+def background_setup(port):
     if not os.path.exists(DB_FILE):
         if not os.path.exists("tiles_esri") or len(os.listdir("tiles_esri")) == 0:
             print("Notice: High-res tiles not found. Launching background download (this may take a while).")
@@ -87,18 +87,19 @@ def background_setup():
         except: pass
         
         print("Setup complete! High-res chunks are now active.")
+    
+    # Broadcast URL to QML only when the database is absolutely ready
+    print(f"http://127.0.0.1:{port}/tiles", flush=True)
 
 def run():
-    threading.Thread(target=background_setup, daemon=True).start()
-        
     port = find_open_port(PORT)
     if not port:
         print("ERROR: No open ports found!")
         return
         
+    threading.Thread(target=background_setup, args=(port,), daemon=True).start()
+        
     server = ThreadingHTTPServer(('127.0.0.1', port), TileHandler)
-    # Output the exact URL so QML can read it via stdout
-    print(f"http://127.0.0.1:{port}/tiles", flush=True)
     server.serve_forever()
 
 if __name__ == '__main__':
