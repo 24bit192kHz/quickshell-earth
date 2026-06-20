@@ -39,7 +39,7 @@ function calculateAstronomy(ms_since_epoch, lon_rad, planetName) {
         };
     }
 
-    // ORIGINAL EARTH CALCULATIONS
+    // ORIGINAL EARTH/MOON CALCULATIONS
     let eps0 = 23.43929111 - 0.013004167 * T - 0.000000164 * T*T + 0.0000005036 * T*T*T;
     let eps_rad = eps0 * Math.PI / 180.0;
     
@@ -72,6 +72,19 @@ function calculateAstronomy(ms_since_epoch, lon_rad, planetName) {
     let h = (ms_since_epoch % 86400000) / 3600000.0;
     let gmst = 6.697374558 + 0.06570982441908 * d + 1.00273790935 * h;
     let gmst_rad = ((gmst % 24.0) / 24.0) * 2 * Math.PI;
+
+    if (planetName === "moon") {
+        // If we are ON the moon, the satellite in the sky is Earth!
+        // Earth is in the exact opposite direction.
+        moon_ra = moon_ra + Math.PI;
+        moon_dec = -moon_dec;
+        
+        // Moon rotation (tidally locked, day is 27.322 Earth days)
+        let rotations = d / 27.321661;
+        gmst_rad = ((rotations % 1.0) + 1.0) % 1.0 * 2 * Math.PI;
+        
+        eps_rad = 1.54 * Math.PI / 180.0; // Moon's axial tilt
+    }
     
     return {
         sun_ra: sun_ra,

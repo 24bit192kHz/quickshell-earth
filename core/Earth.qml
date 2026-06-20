@@ -101,7 +101,7 @@ PanelWindow {
     property real moonProjScale: moonInFrontOfCamera ? (root.cameraZ / Math.max(0.001, root.moonDistToCamera)) : 0
 
     property real moonProjX: root.moonX3D * root.moonProjScale
-    property real baseMoonSize: root.baseSize * 0.27
+    property real baseMoonSize: root.solarState.activePlanet === "moon" ? root.baseSize * 3.667 : root.baseSize * 0.27
     property real vMoonSize: root.baseMoonSize * root.zoomScale * root.moonProjScale
 
     
@@ -270,14 +270,16 @@ PanelWindow {
     // ── Textures ─────────────────────────────────────────
     Image { 
         id: earthTexSrc; 
-        source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg"); 
+        source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); 
         mipmap: true; 
         visible: false 
     }
+    Image { id: earthOnlyTexSrc; source: Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg"); mipmap: true; visible: false }
     Image { id: nightTexSrc; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: bumpTexSrc; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: waterTexSrc; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: cloudTexSrc; source: Qt.resolvedUrl("../assets/textures/clouds_4k.jpg"); mipmap: true; visible: false }
+
     Image { id: moonTexSrc; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
@@ -470,23 +472,23 @@ PanelWindow {
         fragmentShader: "../assets/shaders/earth.frag.qsb"
     }
 
-    // ── Moon ─────────────────────────────────────────────
+    // ── Satellite (Moon or Earth) ────────────────────────
     ShaderEffect {
-        id: moonSphere
+        id: satelliteSphere
         
-        visible: root.solarState.activePlanet === "earth"
+        visible: root.solarState.activePlanet === "earth" || root.solarState.activePlanet === "moon"
         
         x: root.vMoonX; y: root.vMoonY
         width: root.vMoonSize; height: root.vMoonSize
         z: root.moonZ3D < 0 ? -1 : 1
 
         property real angle: -(root.moonRa / (Math.PI * 2))
-        property real tilt: root.userTiltOffset * Math.PI
+        property real tilt: root.solarState.activePlanet === "moon" ? 0.0 : root.userTiltOffset * Math.PI
         property real lightDirX: root.sunX3D - root.moonX3D
         property real lightDirY: root.sunY3D - root.moonY3D
         property real lightDirZ: root.sunZ3D - root.moonZ3D
 
-        property var moonTex: moonTexSrc
+        property var moonTex: root.solarState.activePlanet === "moon" ? earthOnlyTexSrc : moonTexSrc
 
         vertexShader: "../assets/shaders/moon.vert.qsb"
         fragmentShader: "../assets/shaders/moon.frag.qsb"

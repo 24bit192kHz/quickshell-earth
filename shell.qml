@@ -153,9 +153,9 @@ ShellRoot {
             console.log("ISS Orbit Mode ACTIVATED (Idle Timeout)")
         }
 
-        property var planets: ["earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune"]
-        property var savedRotations: [0, 0, 0, 0, 0, 0, 0, 0]
-        property var savedTilts: [0, 0, 0, 0, 0, 0, 0, 0]
+        property var planets: ["earth", "moon", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune"]
+        property var savedRotations: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        property var savedTilts: [0, 0, 0, 0, 0, 0, 0, 0, 0]
         
         property int activePlanetIndex: Math.max(0, planets.indexOf(Quickshell.env("PLANET")))
         property int previousPlanetIndex: activePlanetIndex
