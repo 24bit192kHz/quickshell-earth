@@ -236,9 +236,6 @@ PanelWindow {
             
             if (max_visible_x > 0.8 || max_visible_y > 0.8) {
                 root.patchMinU = 0; root.patchMaxU = 0; root.patchMinV = 0; root.patchMaxV = 0;
-                root.nextPatchMinU = 0; root.nextPatchMaxU = 0; root.nextPatchMinV = 0; root.nextPatchMaxV = 0;
-                root.patchUrlA = "";
-                root.patchUrlB = "";
                 return;
             }
             
