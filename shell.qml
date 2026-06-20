@@ -152,8 +152,9 @@ ShellRoot {
             console.log("ISS Orbit Mode ACTIVATED (Idle Timeout)")
         }
 
-        // Which planet to render ("earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune")
-        property string activePlanet: Quickshell.env("PLANET") !== "" ? Quickshell.env("PLANET") : "earth"
+        property var planets: ["earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune"]
+        property int activePlanetIndex: Math.max(0, planets.indexOf(Quickshell.env("PLANET")))
+        property string activePlanet: planets[activePlanetIndex]
 
         property real sunRa: 0
         property real sunDec: 0
@@ -273,6 +274,20 @@ ShellRoot {
             sceneCenterX: shell.primaryCenterX
             sceneCenterY: shell.primaryCenterY
             primaryScreenHeight: shell.primaryHeight
+        }
+    }
+
+    Shortcut {
+        sequence: "Right"
+        onActivated: {
+            solarState.activePlanetIndex = (solarState.activePlanetIndex + 1) % solarState.planets.length
+        }
+    }
+
+    Shortcut {
+        sequence: "Left"
+        onActivated: {
+            solarState.activePlanetIndex = (solarState.activePlanetIndex - 1 + solarState.planets.length) % solarState.planets.length
         }
     }
 }
