@@ -230,7 +230,7 @@ PanelWindow {
 
     Timer {
         id: patchUpdateTimer
-        interval: 500
+        interval: 50
         running: true
         repeat: true
         onTriggered: {
