@@ -32,33 +32,19 @@ float hash13(vec3 p3) {
     return fract((p3.x + p3.y) * p3.z);
 }
 
-float noise(vec3 p) {
-    vec3 i = floor(p);
-    vec3 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-        mix(mix(hash13(i + vec3(0,0,0)), hash13(i + vec3(1,0,0)), f.x),
-            mix(hash13(i + vec3(0,1,0)), hash13(i + vec3(1,1,0)), f.x), f.y),
-        mix(mix(hash13(i + vec3(0,0,1)), hash13(i + vec3(1,0,1)), f.x),
-            mix(hash13(i + vec3(0,1,1)), hash13(i + vec3(1,1,1)), f.x), f.y), f.z);
-}
-
-float fbm(vec3 p) {
-    float f = 0.0;
-    float w = 0.5;
-    for(int i = 0; i < 4; i++) {
-        f += w * noise(p);
-        p *= 2.05;
-        w *= 0.5;
-    }
-    return f;
-}
-
 vec3 renderStars(vec3 ray) {
     vec3 color = vec3(0.0);
-    // 3 layers of infinite procedural stars
-    for(int i = 1; i <= 3; i++) {
-        float scale = 300.0 * float(i);
+    
+    // The Milky Way is inclined ~60 degrees to the celestial equator
+    vec3 mwRay = rotateX(ray, -60.0 * PI / 180.0);
+    float mwMask = smoothstep(0.4, 0.0, abs(mwRay.y));
+    float centerDist = length(vec2(mwRay.x - 1.0, mwRay.y));
+    mwMask += smoothstep(1.0, 0.0, centerDist) * 0.5; // Brighter core
+    
+    // 5 layers of infinite procedural stars
+    for(int i = 1; i <= 5; i++) {
+        float fi = float(i);
+        float scale = 250.0 * fi;
         vec3 p = ray * scale;
         vec3 ip = floor(p);
         vec3 fp = fract(p);
@@ -70,8 +56,20 @@ vec3 renderStars(vec3 ray) {
         vec3 starPos = vec3(h1, h2, h3);
         float dist = length(fp - starPos);
         
+        float baseSize = mix(0.01, 0.05, hash13(ip * 2.0));
+        float size = baseSize + (mwMask * 0.02);
+        
+        float layerVisibility = 1.0;
+        if (i > 3) {
+            // Higher density layers only appear in the Milky Way band
+            layerVisibility = mwMask;
+            if (h1 > (0.2 + mwMask * 0.6)) continue; 
+        } else {
+            // Sparse background stars
+            if (h1 > 0.7) continue;
+        }
+        
         // Very sharp, vector-like stars
-        float size = mix(0.01, 0.06, hash13(ip * 2.0));
         float brightness = smoothstep(size, 0.0, dist);
         
         // Slight color variation (blue/white/orange giants)
@@ -81,7 +79,7 @@ vec3 renderStars(vec3 ray) {
         // Random twinkle based on spatial position
         float twinkle = 0.5 + 0.5 * sin(h2 * 100.0);
         
-        color += starColor * brightness * twinkle * (1.2 / float(i));
+        color += starColor * brightness * twinkle * layerVisibility * (1.5 / fi);
     }
     return color;
 }
@@ -99,28 +97,8 @@ void main() {
     // Apply sidereal rotation (with 1:10 parallax effect)
     ray = rotateY(ray, -localSiderealTime * 0.1);
     
-    // 1. Procedural Stars (Vector math)
+    // Procedural Stars (Vector math)
     vec3 bg = renderStars(ray);
-    
-    // 2. Procedural Milky Way Dust Band
-    // The Milky Way is inclined ~60 degrees to the celestial equator
-    vec3 mwRay = rotateX(ray, -60.0 * PI / 180.0);
-    
-    // Band structure along the galactic equator
-    float mwMask = smoothstep(0.4, 0.0, abs(mwRay.y)); 
-    
-    // Cloudy noise layers
-    float mwNoise = fbm(mwRay * 3.0);
-    mwNoise *= fbm(mwRay * 12.0) * 1.5;
-    
-    // Galactic glow
-    vec3 mwColor = vec3(0.04, 0.06, 0.12) * mwNoise * mwMask * 3.0;
-    
-    // Galactic center (brighter, warmer)
-    float centerDist = length(vec2(mwRay.x - 1.0, mwRay.y));
-    mwColor += vec3(0.15, 0.1, 0.05) * smoothstep(1.0, 0.0, centerDist) * mwMask * mwNoise * 2.0;
-    
-    bg += mwColor;
     
     fragColor = vec4(bg * qt_Opacity, 1.0);
 }
