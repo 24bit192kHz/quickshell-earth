@@ -123,7 +123,7 @@ void main() {
         patchU -= 1.0;
     }
 
-    if (patchReady > 0.5 && patchBounds.z > patchBounds.x) {
+    if (isEarth > 0.5 && patchReady > 0.5 && patchBounds.z > patchBounds.x) {
         float lat = (0.5 - earthUV.y) * PI;
         // Restrict to valid Web Mercator bounds (-85.05 to +85.05 deg)
         float maxLat = 1.4844222297;
