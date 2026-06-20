@@ -195,10 +195,11 @@ PanelWindow {
             root.solarState.lastInteractionTime = Date.now()
             let factor = root.solarState.ctrlHeld ? 1.5 : 1.15
             if (wheel.angleDelta.y > 0) {
-                root.solarState.zoomScale = Math.min(root.solarState.zoomScale * factor, 250.0)
+                root.solarState.targetZoomScale = Math.min(root.solarState.targetZoomScale * factor, 250.0)
             } else if (wheel.angleDelta.y < 0) {
-                root.solarState.zoomScale = Math.max(root.solarState.zoomScale / factor, 0.15)
+                root.solarState.targetZoomScale = Math.max(root.solarState.targetZoomScale / factor, 0.15)
             }
+            root.solarState.zoomScale = root.solarState.targetZoomScale
         }
     }
 
@@ -254,8 +255,12 @@ PanelWindow {
         let lat_range = Math.asin(Math.min(1.0, max_visible_y));
         
         // Raycast from the center of THIS specific monitor to the sphere
-        let screenCenterLocalX = root.width / 2.0 - root.vEarthX;
-        let screenCenterLocalY = root.height / 2.0 - root.vEarthY;
+        // Calculate vEarthX/Y locally to bypass QML binding update order issues during zoom
+        let local_vEarthX = root.sceneCX - root.vEarthSize / 2.0 - root.screenGlobalX;
+        let local_vEarthY = root.sceneCY - root.vEarthSize / 2.0 - root.screenGlobalY;
+        
+        let screenCenterLocalX = root.width / 2.0 - local_vEarthX;
+        let screenCenterLocalY = root.height / 2.0 - local_vEarthY;
         
         let x = (screenCenterLocalX / root.vEarthSize) * 2.0 - 1.0;
         let y = 1.0 - (screenCenterLocalY / root.vEarthSize) * 2.0;
