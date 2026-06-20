@@ -153,7 +153,7 @@ ShellRoot {
         }
 
         // Which planet to render ("earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune")
-        property string activePlanet: "earth"
+        property string activePlanet: Quickshell.env("PLANET") !== "" ? Quickshell.env("PLANET") : "earth"
 
         property real sunRa: 0
         property real sunDec: 0
