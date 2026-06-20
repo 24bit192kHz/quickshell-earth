@@ -93,6 +93,7 @@ ShellRoot {
                 if (data.status === "success" && data.lon !== undefined) {
                     // Center the camera mathematically on the user's longitude
                     state.userLonRad = data.lon * Math.PI / 180.0
+                    state.targetUserOffsetAngle = 0
                     state.userOffsetAngle = 0
                     
                     console.log("Centered Earth on", data.city + ",", data.country, "(Lon:", data.lon + ")")
@@ -110,6 +111,8 @@ ShellRoot {
     QtObject {
         id: state
 
+        property real targetUserOffsetAngle: 0
+        property real targetUserTiltOffset: 0
         property real userOffsetAngle: 0
         property real userTiltOffset: 0
         property real userLonRad: 0
@@ -160,6 +163,18 @@ ShellRoot {
         
         property real utcDaysMod: 0
         property string cloudUpdateFlag: "init"
+
+        Behavior on zoomScale {
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
+        Behavior on userOffsetAngle {
+            enabled: !state.isDragging && !state.issModeActive
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
+        Behavior on userTiltOffset {
+            enabled: !state.isDragging && !state.issModeActive
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
 
     }
 
@@ -221,14 +236,16 @@ ShellRoot {
                 
                 // Calculate Orbital Latitude (subtract base camera tilt of 30 degrees)
                 let actualLatRad = Math.asin(Math.sin(inc) * Math.sin(state.issPhase))
-                state.userTiltOffset = actualLatRad - (Math.PI / 6.0)
+                state.targetUserTiltOffset = actualLatRad - (Math.PI / 6.0)
+                state.userTiltOffset = state.targetUserTiltOffset
                 
                 // Calculate Right Ascension from orbital phase
                 let alpha = Math.atan2(Math.cos(inc) * Math.sin(state.issPhase), Math.cos(state.issPhase))
                 let targetRa = state.issOmega + alpha
                 
                 // Keep the camera locked exactly to the orbital position over the rotating Earth
-                state.userOffsetAngle = state.gmst + state.userLonRad - targetRa
+                state.targetUserOffsetAngle = state.gmst + state.userLonRad - targetRa
+                state.userOffsetAngle = state.targetUserOffsetAngle
             }
         }
     }

@@ -171,15 +171,18 @@ PanelWindow {
                 // Scale panning sensitivity inversely with zoom so the screen-space movement matches mouse movement
                 let sensitivity = 500.0 * root.zoomScale
                 
-                root.solarState.userOffsetAngle += dx / sensitivity
-                root.solarState.userTiltOffset += dy / sensitivity
+                root.solarState.targetUserOffsetAngle += dx / sensitivity
+                root.solarState.targetUserTiltOffset += dy / sensitivity
 
                 // Allow tilting all the way to the poles (Math.PI / 2)
                 // We subtract the base camera tilt (Math.PI / 6) to stop exactly at the poles
                 let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0)
                 let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0)
-                if (root.solarState.userTiltOffset > maxTilt) root.solarState.userTiltOffset = maxTilt
-                if (root.solarState.userTiltOffset < minTilt) root.solarState.userTiltOffset = minTilt
+                if (root.solarState.targetUserTiltOffset > maxTilt) root.solarState.targetUserTiltOffset = maxTilt
+                if (root.solarState.targetUserTiltOffset < minTilt) root.solarState.targetUserTiltOffset = minTilt
+                
+                root.solarState.userOffsetAngle = root.solarState.targetUserOffsetAngle
+                root.solarState.userTiltOffset = root.solarState.targetUserTiltOffset
 
                 lastX = mouse.x
                 lastY = mouse.y
@@ -219,7 +222,7 @@ PanelWindow {
                     if (z2 < 0.0) return null; // Mouse is pointing at space
                     
                     let z = Math.sqrt(z2);
-                    let a = -root.cameraTilt;
+                    let a = -root.solarState.targetUserTiltOffset - (Math.PI / 6.0); // -root.cameraTilt equivalent for target state
                     let c = Math.cos(a);
                     let s = Math.sin(a);
                     
@@ -229,7 +232,7 @@ PanelWindow {
                     
                     let lat = Math.asin(Math.max(-1.0, Math.min(1.0, normY)));
                     
-                    let greenwichLocalRa = -root.solarState.userLonRad + root.solarState.userOffsetAngle;
+                    let greenwichLocalRa = -root.solarState.userLonRad + root.solarState.targetUserOffsetAngle;
                     let sinG = Math.sin(greenwichLocalRa);
                     let cosG = Math.cos(greenwichLocalRa);
                     
@@ -246,16 +249,18 @@ PanelWindow {
                 if (before && after) {
                     // Mathematically inverse-transform the Earth's absolute Euler rotation 
                     // so the geographic coordinate exactly maps back to the mouse pixel
-                    root.solarState.userOffsetAngle += (after.lon - before.lon);
+                    root.solarState.targetUserOffsetAngle += (after.lon - before.lon);
                     
-                    let new_tilt = root.solarState.userTiltOffset + (before.lat - after.lat);
+                    let new_tilt = root.solarState.targetUserTiltOffset + (before.lat - after.lat);
                     let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0);
                     let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0);
-                    root.solarState.userTiltOffset = Math.max(minTilt, Math.min(maxTilt, new_tilt));
+                    root.solarState.targetUserTiltOffset = Math.max(minTilt, Math.min(maxTilt, new_tilt));
                 }
             }
             
             root.solarState.zoomScale = root.solarState.targetZoomScale
+            root.solarState.userOffsetAngle = root.solarState.targetUserOffsetAngle
+            root.solarState.userTiltOffset = root.solarState.targetUserTiltOffset
         }
     }
 
