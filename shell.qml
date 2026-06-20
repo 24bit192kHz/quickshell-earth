@@ -276,18 +276,4 @@ ShellRoot {
             primaryScreenHeight: shell.primaryHeight
         }
     }
-
-    Shortcut {
-        sequence: "Right"
-        onActivated: {
-            solarState.activePlanetIndex = (solarState.activePlanetIndex + 1) % solarState.planets.length
-        }
-    }
-
-    Shortcut {
-        sequence: "Left"
-        onActivated: {
-            solarState.activePlanetIndex = (solarState.activePlanetIndex - 1 + solarState.planets.length) % solarState.planets.length
-        }
-    }
 }

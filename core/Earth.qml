@@ -18,7 +18,7 @@ PanelWindow {
     WlrLayershell.namespace: "earth-sphere-bg"
     WlrLayershell.layer: WlrLayer.Bottom
 
-    focusable: false
+    focusable: true
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
 
@@ -452,5 +452,20 @@ PanelWindow {
 
         vertexShader: "../assets/shaders/moon.vert.qsb"
         fragmentShader: "../assets/shaders/moon.frag.qsb"
+    } // Close moonSphere
+
+    // ── Input ──────────────────────────────────────────────
+    Shortcut {
+        sequence: "Right"
+        onActivated: {
+            root.solarState.activePlanetIndex = (root.solarState.activePlanetIndex + 1) % root.solarState.planets.length
+        }
     }
-}
+
+    Shortcut {
+        sequence: "Left"
+        onActivated: {
+            root.solarState.activePlanetIndex = (root.solarState.activePlanetIndex - 1 + root.solarState.planets.length) % root.solarState.planets.length
+        }
+    }
+} // Close PanelWindow
