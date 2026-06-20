@@ -211,19 +211,19 @@ PanelWindow {
     Image { id: cloudTexSrc; source: Qt.resolvedUrl("clouds_4k.jpg"); mipmap: true; visible: false }
     Image { id: moonTexSrc; source: Qt.resolvedUrl("moon_2k.jpg"); mipmap: true; visible: false }
 
-    // ── Virtual Texturing ────────────────────────────────
-    property string patchUrlA: ""
-    property string patchUrlB: ""
-    property bool activeIsA: true
+    // ── Native Virtual Texturing ─────────────────────────
     property real patchMinU: 0.0
     property real patchMaxU: 0.0
     property real patchMinV: 0.0
     property real patchMaxV: 0.0
 
-    property real nextPatchMinU: 0.0
-    property real nextPatchMaxU: 0.0
-    property real nextPatchMinV: 0.0
-    property real nextPatchMaxV: 0.0
+    VirtualPatch {
+        id: virtualPatch
+        minU: root.patchMinU
+        maxU: root.patchMaxU
+        minV: root.patchMinV
+        maxV: root.patchMaxV
+    }
 
     Timer {
         id: patchUpdateTimer
@@ -263,78 +263,18 @@ PanelWindow {
             
             // Allow patches to wrap across the Date Line (minU < 0.0 or maxU > 1.0)
             if (true) {
-                // Only request a new patch if we've moved significantly
-                if (Math.abs(minU - nextPatchMinU) > (bufferU * 0.2) || Math.abs(minV - nextPatchMinV) > (bufferV * 0.2) || nextPatchMaxU === 0.0) {
-                    root.nextPatchMinU = minU;
-                    root.nextPatchMaxU = maxU;
-                    root.nextPatchMinV = minV;
-                    root.nextPatchMaxV = maxV;
-                    if (root.activeIsA) {
-                        patchTexB.targetMinU = minU;
-                        patchTexB.targetMaxU = maxU;
-                        patchTexB.targetMinV = minV;
-                        patchTexB.targetMaxV = maxV;
-                        root.patchUrlB = "http://localhost:8080/patch?minU=" + minU + "&maxU=" + maxU + "&minV=" + minV + "&maxV=" + maxV + "&t=" + Date.now();
-                    } else {
-                        patchTexA.targetMinU = minU;
-                        patchTexA.targetMaxU = maxU;
-                        patchTexA.targetMinV = minV;
-                        patchTexA.targetMaxV = maxV;
-                        root.patchUrlA = "http://localhost:8080/patch?minU=" + minU + "&maxU=" + maxU + "&minV=" + minV + "&maxV=" + maxV + "&t=" + Date.now();
-                    }
-                }
+                // Update VirtualPatch bounds smoothly
+                root.patchMinU = minU;
+                root.patchMaxU = maxU;
+                root.patchMinV = minV;
+                root.patchMaxV = maxV;
             } else {
                 root.patchMinU = 0; root.patchMaxU = 0;
-                root.nextPatchMinU = 0; root.nextPatchMaxU = 0;
-                root.patchUrlA = "";
-                root.patchUrlB = "";
             }
         }
     }
 
-    Image {
-        id: patchTexA
-        source: root.patchUrlA
-        mipmap: true
-        asynchronous: true
-        visible: false
-        property real targetMinU: 0.0
-        property real targetMaxU: 0.0
-        property real targetMinV: 0.0
-        property real targetMaxV: 0.0
-        onStatusChanged: {
-            if (status === Image.Ready && !root.activeIsA) {
-                root.patchMinU = targetMinU;
-                root.patchMaxU = targetMaxU;
-                root.patchMinV = targetMinV;
-                root.patchMaxV = targetMaxV;
-                root.activeIsA = true;
-                console.log("Patch A applied!");
-            }
-        }
-    }
-    
-    Image {
-        id: patchTexB
-        source: root.patchUrlB
-        mipmap: true
-        asynchronous: true
-        visible: false
-        property real targetMinU: 0.0
-        property real targetMaxU: 0.0
-        property real targetMinV: 0.0
-        property real targetMaxV: 0.0
-        onStatusChanged: {
-            if (status === Image.Ready && root.activeIsA) {
-                root.patchMinU = targetMinU;
-                root.patchMaxU = targetMaxU;
-                root.patchMinV = targetMinV;
-                root.patchMaxV = targetMaxV;
-                root.activeIsA = false;
-                console.log("Patch B applied!");
-            }
-        }
-    }
+    // ── Removed Python HTTP patch images ────────────────
 
     // ── Sun ──────────────────────────────────────────────
     ShaderEffect {
@@ -380,9 +320,9 @@ PanelWindow {
         property variant bumpTex: bumpTexSrc
         property variant waterTex: waterTexSrc
         property variant cloudTex: cloudTexSrc
-        property var patchTex: root.activeIsA ? patchTexA : patchTexB
+        property var patchTex: virtualPatch.textureProvider
         property vector4d patchBounds: Qt.vector4d(root.patchMinU, root.patchMinV, root.patchMaxU, root.patchMaxV)
-        property real patchReady: ((root.activeIsA ? patchTexA.status : patchTexB.status) === Image.Ready) ? 1.0 : 0.0
+        property real patchReady: 1.0
         property real cloudOpacity: Math.min(1.0, Math.max(0.0, 1.0 - (root.zoomScale - 15.0) / 10.0))
 
         vertexShader: "earth.vert.qsb"
