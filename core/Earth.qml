@@ -94,7 +94,7 @@ PanelWindow {
     property real orbitRadius: root.baseSize * 0.9
     property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
     property real sunDistance: root.baseSize * 6.0  // True distance to the Sun
-    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 221.2 : root.baseSize * 2.0 // True distance to the Moon
+    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 44.24 : root.baseSize * 2.0 // True distance to the Moon
 
     property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
     property real moonDistToCamera: root.cameraZ - root.moonZ3D
@@ -278,7 +278,7 @@ PanelWindow {
     Image { id: nightTexSrc; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: bumpTexSrc; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: waterTexSrc; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
-    Image { id: cloudTexSrc; source: Qt.resolvedUrl("../assets/textures/clouds_4k.jpg"); mipmap: true; visible: false }
+    Image { id: cloudTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
 
     Image { id: moonTexSrc; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
 

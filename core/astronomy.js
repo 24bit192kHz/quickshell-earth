@@ -79,9 +79,12 @@ function calculateAstronomy(ms_since_epoch, lon_rad, planetName) {
         moon_ra = moon_ra + Math.PI;
         moon_dec = -moon_dec;
         
-        // Moon rotation (tidally locked, day is 27.322 Earth days)
-        let rotations = d / 27.321661;
-        gmst_rad = ((rotations % 1.0) + 1.0) % 1.0 * 2 * Math.PI;
+        // Moon rotation (tidally locked to Earth)
+        // The Moon's Prime Meridian (lon 0) points towards the mean sub-Earth point.
+        // Therefore, its rotation angle (GMST) is exactly tied to its mean longitude + 180 degrees.
+        // This naturally produces the real-world longitudinal libration as the true longitude (moon_lambda) wobbles around the mean (moon_L).
+        gmst_rad = (moon_L_rad + Math.PI) % (2 * Math.PI);
+        if (gmst_rad < 0) gmst_rad += 2 * Math.PI;
         
         eps_rad = 1.54 * Math.PI / 180.0; // Moon's axial tilt
     }
