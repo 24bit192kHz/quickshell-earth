@@ -40,11 +40,11 @@ void main() {
     // 90 degree FOV (z = -1.0)
     vec3 ray = normalize(vec3(ndc.x, -ndc.y, -1.5)); // Zoomed slightly to reduce distortion
     
-    // Apply camera tilt
-    ray = rotateX(ray, userTiltOffset);
+    // Apply camera tilt (with 1:10 parallax effect so it moves at 1x speed despite 10x orbit)
+    ray = rotateX(ray, userTiltOffset * 0.1);
     
-    // Apply sidereal rotation
-    ray = rotateY(ray, -localSiderealTime);
+    // Apply sidereal rotation (with 1:10 parallax effect)
+    ray = rotateY(ray, -localSiderealTime * 0.1);
     
     vec2 bgUV = sphereToUV(ray);
     fragColor = texture(bgTex, bgUV) * qt_Opacity;

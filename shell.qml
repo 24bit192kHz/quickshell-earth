@@ -79,6 +79,9 @@ ShellRoot {
                     state.userOffsetAngle = 0
                     
                     console.log("Centered Earth on", data.city + ",", data.country, "(Lon:", data.lon + ")")
+                    
+                    // Now that we are perfectly centered over the user, start the orbit seamlessly!
+                    state.startIssOrbit()
                 }
             } catch(e) {
                 console.error("Failed to parse location:", e)
@@ -96,6 +99,36 @@ ShellRoot {
         property real timeSec: 0
         property real zoomScale: 1.0
         property bool isDragging: false
+        property bool ctrlHeld: false
+        property bool issModeActive: false
+        property real issPhase: 0.0 // Phase of the ISS orbit (0 to 2PI)
+        property real issOmega: 0.0 // Right Ascension of the ascending node
+        property real lastInteractionTime: Date.now()
+        
+        function startIssOrbit() {
+            if (issModeActive) return
+            
+            // Initialize orbit to start seamlessly at the current camera view
+            let actualLat = userTiltOffset + (Math.PI / 6.0)
+            let inc = 51.6 * Math.PI / 180.0 // ISS Inclination
+            
+            // Clamp latitude to the maximum orbital inclination bounds
+            let sinPhase = Math.sin(actualLat) / Math.sin(inc)
+            sinPhase = Math.max(-1.0, Math.min(1.0, sinPhase))
+            
+            // Calculate initial orbital phase from equator
+            let phase = Math.asin(sinPhase)
+            
+            // Calculate the absolute Right Ascension of the orbit's ascending node
+            let alpha = Math.atan2(Math.cos(inc) * Math.sin(phase), Math.cos(phase))
+            let currentRa = gmst + userLonRad - userOffsetAngle
+            let omega = currentRa - alpha
+            
+            issPhase = phase
+            issOmega = omega
+            issModeActive = true
+            console.log("ISS Orbit Mode ACTIVATED (Idle Timeout)")
+        }
 
         property real sunRa: 0
         property real sunDec: 0
@@ -108,12 +141,27 @@ ShellRoot {
         property string cloudUpdateFlag: "init"
 
         Behavior on userTiltOffset {
-            enabled: !state.isDragging
+            enabled: !state.isDragging && !state.issModeActive
             SpringAnimation { spring: 0.4; damping: 0.15; mass: 2.0; epsilon: 0.001 }
         }
 
         Behavior on zoomScale {
             NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // ── Key Monitor (Ctrl) ─────────────────
+    Process {
+        id: ctrlProc
+        command: ["python3", Qt.resolvedUrl("ctrl_monitor.py").toString().replace("file://", "")]
+        running: true
+
+        stdout: SplitParser {
+            onRead: data => {
+                let trimmed = data.trim()
+                if (trimmed === "1") state.ctrlHeld = true
+                else if (trimmed === "0") state.ctrlHeld = false
+            }
         }
     }
 
@@ -138,6 +186,33 @@ ShellRoot {
             state.gmst = astro.gmst_rad
             state.eps = astro.eps_rad
             state.utcDaysMod = (ms / 86400000.0) % 1.0
+            
+            // Execute ISS Orbital Dynamics
+            if (!state.issModeActive && (ms - state.lastInteractionTime) > 30000) {
+                state.startIssOrbit()
+            }
+            
+            if (state.issModeActive) {
+                // ISS completes one orbit every 92 minutes (5520 seconds)
+                // We run at 5x real-time speed. dt is 16ms = 0.016s
+                let phaseDelta = (0.016 * 5.0 / 5520.0) * 2.0 * Math.PI
+                state.issPhase += phaseDelta
+                if (state.issPhase > 2.0 * Math.PI) state.issPhase -= 2.0 * Math.PI
+                
+                let inc = 51.6 * Math.PI / 180.0
+                
+                // Calculate Orbital Latitude (subtract base camera tilt of 30 degrees)
+                let actualLatRad = Math.asin(Math.sin(inc) * Math.sin(state.issPhase))
+                state.userTiltOffset = actualLatRad - (Math.PI / 6.0)
+                
+                // Calculate Right Ascension from orbital phase
+                let alpha = Math.atan2(Math.cos(inc) * Math.sin(state.issPhase), Math.cos(state.issPhase))
+                let targetRa = state.issOmega + alpha
+                
+                // Keep the camera locked exactly to the orbital position over the rotating Earth
+                // targetRa = gmst + userLonRad - userOffsetAngle
+                state.userOffsetAngle = state.gmst + state.userLonRad - targetRa
+            }
         }
     }
 

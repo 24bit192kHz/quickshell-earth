@@ -126,7 +126,7 @@ PanelWindow {
     // Wayland mask removed to allow the full-screen background to render.
     
     // ── Global Background (Dynamic Equirectangular Panorama) ──
-    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("8k_stars_milky_way.jpg"); visible: false }
+    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("4k_stars_milky_way.jpg"); mipmap: true; visible: false }
 
     ShaderEffect {
         id: bgSphere
@@ -156,15 +156,21 @@ PanelWindow {
             lastX = mouse.x
             lastY = mouse.y
             root.solarState.isDragging = true
+            root.solarState.issModeActive = false
+            root.solarState.lastInteractionTime = Date.now()
         }
 
         onPositionChanged: (mouse) => {
+            root.solarState.lastInteractionTime = Date.now()
             if (root.solarState.isDragging) {
                 let dx = mouse.x - lastX
                 let dy = mouse.y - lastY
                 
-                root.solarState.userOffsetAngle += dx / 500.0
-                root.solarState.userTiltOffset += dy / 500.0
+                // Scale panning sensitivity inversely with zoom so the screen-space movement matches mouse movement
+                let sensitivity = 500.0 * root.zoomScale
+                
+                root.solarState.userOffsetAngle += dx / sensitivity
+                root.solarState.userTiltOffset += dy / sensitivity
 
                 // Allow tilting all the way to the poles (Math.PI / 2)
                 // We subtract the base camera tilt (Math.PI / 6) to stop exactly at the poles
@@ -183,10 +189,13 @@ PanelWindow {
         }
 
         onWheel: (wheel) => {
+            root.solarState.issModeActive = false
+            root.solarState.lastInteractionTime = Date.now()
+            let factor = root.solarState.ctrlHeld ? 1.5 : 1.15
             if (wheel.angleDelta.y > 0) {
-                root.solarState.zoomScale = Math.min(root.solarState.zoomScale * 1.15, 15.0)
+                root.solarState.zoomScale = Math.min(root.solarState.zoomScale * factor, 250.0)
             } else if (wheel.angleDelta.y < 0) {
-                root.solarState.zoomScale = Math.max(root.solarState.zoomScale / 1.15, 0.15)
+                root.solarState.zoomScale = Math.max(root.solarState.zoomScale / factor, 0.15)
             }
         }
     }
@@ -195,17 +204,137 @@ PanelWindow {
     // Depth handled by perspective projection above
 
     // ── Textures ─────────────────────────────────────────
-    Image { id: earthTexSrc; source: Qt.resolvedUrl("earth_8k.jpg"); visible: false }
-    // Fetch live global cloud composite generated from weather satellites (updated every 3 hours)
-    Image { 
-        id: cloudTexSrc; 
-        source: "https://clouds.matteason.co.uk/images/8192x4096/clouds.jpg?v=" + root.solarState.cloudUpdateFlag; 
-        visible: false 
+    Image { id: earthTexSrc; source: Qt.resolvedUrl("earth_8k_opt.jpg"); mipmap: true; visible: false }
+    Image { id: nightTexSrc; source: Qt.resolvedUrl("night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: bumpTexSrc; source: Qt.resolvedUrl("elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: waterTexSrc; source: Qt.resolvedUrl("water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: cloudTexSrc; source: Qt.resolvedUrl("clouds_4k.jpg"); mipmap: true; visible: false }
+    Image { id: moonTexSrc; source: Qt.resolvedUrl("moon_2k.jpg"); mipmap: true; visible: false }
+
+    // ── Virtual Texturing ────────────────────────────────
+    property string patchUrlA: ""
+    property string patchUrlB: ""
+    property bool activeIsA: true
+    property real patchMinU: 0.0
+    property real patchMaxU: 0.0
+    property real patchMinV: 0.0
+    property real patchMaxV: 0.0
+
+    property real nextPatchMinU: 0.0
+    property real nextPatchMaxU: 0.0
+    property real nextPatchMinV: 0.0
+    property real nextPatchMaxV: 0.0
+
+    Timer {
+        id: patchUpdateTimer
+        interval: 500
+        running: true
+        repeat: true
+        onTriggered: {
+            let max_visible_x = root.width / vEarthSize;
+            let max_visible_y = root.height / vEarthSize;
+            
+            if (max_visible_x > 0.8 || max_visible_y > 0.8) {
+                root.patchMinU = 0; root.patchMaxU = 0; root.patchMinV = 0; root.patchMaxV = 0;
+                root.nextPatchMinU = 0; root.nextPatchMaxU = 0; root.nextPatchMinV = 0; root.nextPatchMaxV = 0;
+                root.patchUrlA = "";
+                root.patchUrlB = "";
+                return;
+            }
+            
+            let lon_range = Math.asin(Math.min(1.0, max_visible_x));
+            let lat_range = Math.asin(Math.min(1.0, max_visible_y));
+            
+            let center_lon = root.solarState.userLonRad - root.solarState.userOffsetAngle;
+            let center_lat = root.cameraTilt;
+            
+            let u_center = (center_lon / (2.0 * Math.PI)) + 0.5;
+            u_center = u_center - Math.floor(u_center);
+            let v_center = 0.5 - (center_lat / Math.PI);
+            
+            // Fetch a patch slightly larger than the screen to avoid edge pop-in
+            let bufferU = (lon_range / (2.0 * Math.PI)) * 1.5;
+            let bufferV = (lat_range / Math.PI) * 1.5;
+            
+            let minU = u_center - bufferU;
+            let maxU = u_center + bufferU;
+            let minV = Math.max(0.0, v_center - bufferV);
+            let maxV = Math.min(1.0, v_center + bufferV);
+            
+            // Allow patches to wrap across the Date Line (minU < 0.0 or maxU > 1.0)
+            if (true) {
+                // Only request a new patch if we've moved significantly
+                if (Math.abs(minU - nextPatchMinU) > (bufferU * 0.2) || Math.abs(minV - nextPatchMinV) > (bufferV * 0.2) || nextPatchMaxU === 0.0) {
+                    root.nextPatchMinU = minU;
+                    root.nextPatchMaxU = maxU;
+                    root.nextPatchMinV = minV;
+                    root.nextPatchMaxV = maxV;
+                    if (root.activeIsA) {
+                        patchTexB.targetMinU = minU;
+                        patchTexB.targetMaxU = maxU;
+                        patchTexB.targetMinV = minV;
+                        patchTexB.targetMaxV = maxV;
+                        root.patchUrlB = "http://localhost:8080/patch?minU=" + minU + "&maxU=" + maxU + "&minV=" + minV + "&maxV=" + maxV + "&t=" + Date.now();
+                    } else {
+                        patchTexA.targetMinU = minU;
+                        patchTexA.targetMaxU = maxU;
+                        patchTexA.targetMinV = minV;
+                        patchTexA.targetMaxV = maxV;
+                        root.patchUrlA = "http://localhost:8080/patch?minU=" + minU + "&maxU=" + maxU + "&minV=" + minV + "&maxV=" + maxV + "&t=" + Date.now();
+                    }
+                }
+            } else {
+                root.patchMinU = 0; root.patchMaxU = 0;
+                root.nextPatchMinU = 0; root.nextPatchMaxU = 0;
+                root.patchUrlA = "";
+                root.patchUrlB = "";
+            }
+        }
     }
-    Image { id: nightTexSrc; source: Qt.resolvedUrl("night_8k.jpg"); visible: false }
-    Image { id: bumpTexSrc; source: Qt.resolvedUrl("elev_bump_8k.jpg"); visible: false }
-    Image { id: waterTexSrc; source: Qt.resolvedUrl("water_8k.png"); visible: false }
-    Image { id: moonTexSrc; source: Qt.resolvedUrl("moon_8k.jpg"); visible: false }
+
+    Image {
+        id: patchTexA
+        source: root.patchUrlA
+        mipmap: true
+        asynchronous: true
+        visible: false
+        property real targetMinU: 0.0
+        property real targetMaxU: 0.0
+        property real targetMinV: 0.0
+        property real targetMaxV: 0.0
+        onStatusChanged: {
+            if (status === Image.Ready && !root.activeIsA) {
+                root.patchMinU = targetMinU;
+                root.patchMaxU = targetMaxU;
+                root.patchMinV = targetMinV;
+                root.patchMaxV = targetMaxV;
+                root.activeIsA = true;
+                console.log("Patch A applied!");
+            }
+        }
+    }
+    
+    Image {
+        id: patchTexB
+        source: root.patchUrlB
+        mipmap: true
+        asynchronous: true
+        visible: false
+        property real targetMinU: 0.0
+        property real targetMaxU: 0.0
+        property real targetMinV: 0.0
+        property real targetMaxV: 0.0
+        onStatusChanged: {
+            if (status === Image.Ready && root.activeIsA) {
+                root.patchMinU = targetMinU;
+                root.patchMaxU = targetMaxU;
+                root.patchMinV = targetMinV;
+                root.patchMaxV = targetMaxV;
+                root.activeIsA = false;
+                console.log("Patch B applied!");
+            }
+        }
+    }
 
     // ── Sun ──────────────────────────────────────────────
     ShaderEffect {
@@ -246,11 +375,15 @@ PanelWindow {
         property real userLonRad: root.solarState.userLonRad
         property real userOffsetAngle: root.userOffsetAngle
 
-        property var earthTex: earthTexSrc
-        property var cloudTex: cloudTexSrc
-        property var nightTex: nightTexSrc
-        property var bumpTex: bumpTexSrc
-        property var waterTex: waterTexSrc
+        property variant earthTex: earthTexSrc
+        property variant nightTex: nightTexSrc
+        property variant bumpTex: bumpTexSrc
+        property variant waterTex: waterTexSrc
+        property variant cloudTex: cloudTexSrc
+        property var patchTex: root.activeIsA ? patchTexA : patchTexB
+        property vector4d patchBounds: Qt.vector4d(root.patchMinU, root.patchMinV, root.patchMaxU, root.patchMaxV)
+        property real patchReady: ((root.activeIsA ? patchTexA.status : patchTexB.status) === Image.Ready) ? 1.0 : 0.0
+        property real cloudOpacity: Math.min(1.0, Math.max(0.0, 1.0 - (root.zoomScale - 15.0) / 10.0))
 
         vertexShader: "earth.vert.qsb"
         fragmentShader: "earth.frag.qsb"

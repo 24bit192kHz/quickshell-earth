@@ -13,6 +13,7 @@ layout(std140, binding = 0) uniform buf {
     float sunDec;
     float userLonRad;
     float userOffsetAngle;
+    float cloudOpacity;
 };
 void main() {
     coord = qt_MultiTexCoord0;
