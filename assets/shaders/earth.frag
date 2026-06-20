@@ -282,7 +282,8 @@ void main() {
     vec3 color = mix(nightColor, dayColor, terminator);
     
     // Universal starlight ambient glow so the night side of planets is never completely pitch black
-    color += earthColor * vec3(0.02, 0.025, 0.035);
+    // Boosted ambient brightness so it's comfortably visible
+    color += earthColor * vec3(0.08, 0.09, 0.11);
 
     // ── Clouds ──
     // Multi-octave fluid noise (FBM) for realistic atmospheric flow
