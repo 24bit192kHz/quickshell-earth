@@ -237,6 +237,10 @@ ShellRoot {
         state.eps = astro.eps_rad
         state.utcDaysMod = (ms / 86400000.0) % 1.0
     }
+    
+    Component.onCompleted: {
+        forceAstroUpdate()
+    }
 
     // ── Real-Time Astronomy Engine ───────────────────────
     property real lastAstroCalc: 0
@@ -247,6 +251,7 @@ ShellRoot {
         repeat: true
         onTriggered: {
             let ms = Date.now()
+
             
             // Only update fast animations and astro math if flying or 1 second has passed
             if (ms - lastAstroCalc > 1000 || state.issModeActive) {
