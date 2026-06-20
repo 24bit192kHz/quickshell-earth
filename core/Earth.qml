@@ -467,7 +467,7 @@ PanelWindow {
         property var patchTex: virtualPatch.textureProvider
         property vector4d patchBounds: Qt.vector4d(root.patchMinU, root.patchMinV, root.patchMaxU, root.patchMaxV)
         property real patchReady: 1.0
-        property real cloudOpacity: Math.min(1.0, Math.max(0.0, 1.0 - (root.zoomScale - 15.0) / 10.0))
+        property real cloudOpacity: root.solarState.activePlanet === "earth" ? Math.min(1.0, Math.max(0.0, 1.0 - (root.zoomScale - 15.0) / 10.0)) : 0.0
 
         vertexShader: "../assets/shaders/earth.vert.qsb"
         fragmentShader: "../assets/shaders/earth.frag.qsb"

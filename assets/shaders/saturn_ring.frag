@@ -27,10 +27,10 @@ vec3 rotateX(vec3 p, float a) {
 }
 
 void main() {
-    // coord goes from 0 to 1 over the 3x enlarged ring plane.
-    // We want the planet to be size 1.0, so the quad goes from -1.5 to 1.5.
-    float x = (coord.x - 0.5) * 3.0;
-    float y = (0.5 - coord.y) * 3.0; // Y is up
+    // coord goes from 0 to 1 over the 3x enlarged ring plane (which is 6x the planet radius).
+    // We want the planet to be size 1.0, so the quad goes from -3.0 to 3.0 radii.
+    float x = (coord.x - 0.5) * 6.0;
+    float y = (0.5 - coord.y) * 6.0; // Y is up
 
     // The ring is on the planet's equatorial plane. 
     // In camera coords, planet's north pole is tilted by -cameraTilt.
