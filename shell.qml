@@ -153,9 +153,26 @@ ShellRoot {
         }
 
         property var planets: ["earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune"]
+        property var savedRotations: [0, 0, 0, 0, 0, 0, 0, 0]
+        property var savedTilts: [0, 0, 0, 0, 0, 0, 0, 0]
+        
         property int activePlanetIndex: Math.max(0, planets.indexOf(Quickshell.env("PLANET")))
+        property int previousPlanetIndex: activePlanetIndex
         property string activePlanet: planets[activePlanetIndex]
-        onActivePlanetChanged: shell.forceAstroUpdate()
+        
+        onActivePlanetIndexChanged: {
+            savedRotations[previousPlanetIndex] = targetUserOffsetAngle
+            savedTilts[previousPlanetIndex] = targetUserTiltOffset
+            
+            targetUserOffsetAngle = savedRotations[activePlanetIndex]
+            userOffsetAngle = targetUserOffsetAngle
+            
+            targetUserTiltOffset = savedTilts[activePlanetIndex]
+            userTiltOffset = targetUserTiltOffset
+            
+            previousPlanetIndex = activePlanetIndex
+            shell.forceAstroUpdate()
+        }
 
         property real sunRa: 0
         property real sunDec: 0
