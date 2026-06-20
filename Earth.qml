@@ -225,6 +225,7 @@ PanelWindow {
         maxU: root.patchMaxU
         minV: root.patchMinV
         maxV: root.patchMaxV
+        tileServerUrl: root.solarState.tileServerUrl
     }
 
     Timer {

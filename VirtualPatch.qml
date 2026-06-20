@@ -7,6 +7,7 @@ Item {
     property real maxU: 0.0
     property real minV: 0.0
     property real maxV: 0.0
+    property string tileServerUrl: ""
 
     property var matrixSizes: [
         [1, 1],
@@ -120,7 +121,8 @@ Item {
                 y: (model.ty / root.numTilesY - root.minV) * root.numTilesY * 256
                 width: 256
                 height: 256
-                source: Qt.resolvedUrl("tiles_esri/" + model.zLevel + "/" + model.tx + "/" + model.ty + ".jpeg")
+                source: root.tileServerUrl !== "" ? 
+                        (root.tileServerUrl + "/" + model.zLevel + "/" + model.tx + "/" + model.ty) : ""
                 asynchronous: true
                 fillMode: Image.Stretch
             }

@@ -58,7 +58,23 @@ ShellRoot {
         }
     }
 
-    // ── IP Geolocation (Auto-Center) ─────────────────────
+    // ── Local SQLite Tile Server ─────────────────────────
+    Process {
+        id: tileServerProc
+        command: ["python3", root.dir + "/server.py"]
+        running: true
+        
+        stdout: SplitParser {
+            onRead: data => {
+                if (data.startsWith("http")) {
+                    state.tileServerUrl = data.trim()
+                    console.log("Local Tile Server active at:", state.tileServerUrl)
+                }
+            }
+        }
+    }
+
+    // ── Cloud API Location Resolver ──────────────────────
     Process {
         id: locProc
         command: ["curl", "-s", "http://ip-api.com/json/"]
@@ -136,6 +152,8 @@ ShellRoot {
         property real moonDec: 0
         property real gmst: 0
         property real eps: 0
+        
+        property string tileServerUrl: ""
         
         property real utcDaysMod: 0
         property string cloudUpdateFlag: "init"
