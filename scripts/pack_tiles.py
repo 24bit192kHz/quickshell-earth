@@ -10,8 +10,12 @@ def pack_tiles():
         print(f"{DB_FILE} already exists. Skipping packing.")
         return
         
+    temp_db = "tiles_temp.db"
+    if os.path.exists(temp_db):
+        os.remove(temp_db)
+        
     print(f"Packing {TILES_DIR} into {DB_FILE}...")
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(temp_db)
     c = conn.cursor()
     
     # Create the mbtiles-compatible schema
@@ -51,6 +55,8 @@ def pack_tiles():
                     
     conn.commit()
     conn.close()
+    
+    os.rename(temp_db, DB_FILE)
     print(f"Done! Packed {count} total tiles.")
 
 if __name__ == "__main__":
