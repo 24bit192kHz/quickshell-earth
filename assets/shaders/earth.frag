@@ -114,7 +114,7 @@ void main() {
     // ── Base Color ──
     vec3 earthColor = textureGrad(earthTex, earthUV, dx, dy).rgb;
     
-    // ── Virtual Texturing Patch ──
+    float patchBlendFactor = 0.0;
     float patchU = earthUV.x;
     if (patchBounds.z > 1.0 && patchU < patchBounds.x) {
         patchU += 1.0;
@@ -144,8 +144,8 @@ void main() {
                 
                 float blend = smoothstep(0.0, 0.05, min(min(localUV.x, 1.0 - localUV.x), min(localUV.y, 1.0 - localUV.y)));
                 // Smoothly crossfade using the QML tile's fade-in alpha channel
-                float finalBlend = blend * patchSample.a;
-                earthColor = mix(earthColor, pColor, finalBlend);
+                patchBlendFactor = blend * patchSample.a;
+                earthColor = mix(earthColor, pColor, patchBlendFactor);
             }
         }
     }
@@ -258,7 +258,7 @@ void main() {
     // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
     float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
     float highResMask = smoothstep(0.05, 0.5, earthLuma) * 1.5;
-    nightColor *= mix(1.0, highResMask, patchReady);
+    nightColor *= mix(1.0, highResMask, patchBlendFactor);
     
     nightColor *= 2.0;
 
