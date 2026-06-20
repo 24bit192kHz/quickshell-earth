@@ -249,11 +249,17 @@ PanelWindow {
             
             let u_center = (center_lon / (2.0 * Math.PI)) + 0.5;
             u_center = u_center - Math.floor(u_center);
-            let v_center = 0.5 - (center_lat / Math.PI);
+            
+            // Web Mercator v_center
+            let maxLat = 1.4844; // ~85.05 degrees
+            let clamped_lat = Math.max(-maxLat, Math.min(maxLat, center_lat));
+            let v_center = 0.5 - Math.log(Math.tan(Math.PI / 4.0 + clamped_lat / 2.0)) / (2.0 * Math.PI);
             
             // Fetch a patch slightly larger than the screen to avoid edge pop-in
             let bufferU = (lon_range / (2.0 * Math.PI)) * 1.5;
-            let bufferV = (lat_range / Math.PI) * 1.5;
+            // Web Mercator V scales by 1/cos(lat)
+            let mercator_scale = 1.0 / Math.max(0.01, Math.cos(clamped_lat));
+            let bufferV = (lat_range / (2.0 * Math.PI)) * 1.5 * mercator_scale;
             
             let minU = u_center - bufferU;
             let maxU = u_center + bufferU;

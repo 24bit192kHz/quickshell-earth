@@ -9,14 +9,16 @@ Item {
     property real maxV: 0.0
 
     property var matrixSizes: [
-        [2, 1],
-        [3, 2],
-        [5, 3],
-        [10, 5],
-        [20, 10],
-        [40, 20],
-        [80, 40],
-        [160, 80]
+        [1, 1],
+        [2, 2],
+        [4, 4],
+        [8, 8],
+        [16, 16],
+        [32, 32],
+        [64, 64],
+        [128, 128],
+        [256, 256],
+        [512, 512]
     ]
 
     property int zLevel: {
@@ -31,15 +33,15 @@ Item {
                 break;
             }
         }
-        if (z === 0 && matrixSizes[7][0] * 512 < desired_global_width) z = 7;
+        if (z === 0 && matrixSizes[9][0] * 256 < desired_global_width) z = 9;
         return z;
     }
     
     property int numTilesX: matrixSizes[zLevel][0]
     property int numTilesY: matrixSizes[zLevel][1]
 
-    property real patchWidthPx: (maxU - minU) * numTilesX * 512
-    property real patchHeightPx: (maxV - minV) * numTilesY * 512
+    property real patchWidthPx: (maxU - minU) * numTilesX * 256
+    property real patchHeightPx: (maxV - minV) * numTilesY * 256
 
     ListModel {
         id: tilesModel
@@ -56,15 +58,15 @@ Item {
             return;
         }
         
-        let px_minX = minU * numTilesX * 512;
-        let px_maxX = maxU * numTilesX * 512;
-        let px_minY = minV * numTilesY * 512;
-        let px_maxY = maxV * numTilesY * 512;
+        let px_minX = minU * numTilesX * 256;
+        let px_maxX = maxU * numTilesX * 256;
+        let px_minY = minV * numTilesY * 256;
+        let px_maxY = maxV * numTilesY * 256;
 
-        let tx_start = Math.max(0, Math.floor(px_minX / 512));
-        let tx_end = Math.min(numTilesX - 1, Math.floor(px_maxX / 512));
-        let ty_start = Math.max(0, Math.floor(px_minY / 512));
-        let ty_end = Math.min(numTilesY - 1, Math.floor(px_maxY / 512));
+        let tx_start = Math.max(0, Math.floor(px_minX / 256));
+        let tx_end = Math.min(numTilesX - 1, Math.floor(px_maxX / 256));
+        let ty_start = Math.max(0, Math.floor(px_minY / 256));
+        let ty_end = Math.min(numTilesY - 1, Math.floor(px_maxY / 256));
 
         // Prevent too many tiles if something goes wrong
         if ((tx_end - tx_start + 1) * (ty_end - ty_start + 1) > 100) return;
@@ -114,11 +116,11 @@ Item {
         Repeater {
             model: tilesModel
             Image {
-                x: (model.tx / root.numTilesX - root.minU) * root.numTilesX * 512
-                y: (model.ty / root.numTilesY - root.minV) * root.numTilesY * 512
-                width: 512
-                height: 512
-                source: Qt.resolvedUrl("tiles/" + model.zLevel + "/" + model.tx + "/" + model.ty + ".jpeg")
+                x: (model.tx / root.numTilesX - root.minU) * root.numTilesX * 256
+                y: (model.ty / root.numTilesY - root.minV) * root.numTilesY * 256
+                width: 256
+                height: 256
+                source: Qt.resolvedUrl("tiles_esri/" + model.zLevel + "/" + model.tx + "/" + model.ty + ".jpeg")
                 asynchronous: true
                 fillMode: Image.Stretch
             }

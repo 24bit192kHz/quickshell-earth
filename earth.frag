@@ -122,18 +122,27 @@ void main() {
         patchU -= 1.0;
     }
 
-    if (patchReady > 0.5 && patchBounds.z > patchBounds.x && patchU >= patchBounds.x && patchU <= patchBounds.z && earthUV.y >= patchBounds.y && earthUV.y <= patchBounds.w) {
-        vec2 localUV = vec2(
-            (patchU - patchBounds.x) / (patchBounds.z - patchBounds.x),
-            (earthUV.y - patchBounds.y) / (patchBounds.w - patchBounds.y)
-        );
-        vec4 patchSample = textureGrad(patchTex, localUV, dx, dy);
-        
-        float edgeU = min(localUV.x, 1.0 - localUV.x);
-        float edgeV = min(localUV.y, 1.0 - localUV.y);
-        float blend = smoothstep(0.0, 0.05, min(edgeU, edgeV)) * patchSample.a;
-        
-        earthColor = mix(earthColor, patchSample.rgb, blend);
+    if (patchReady > 0.5 && patchBounds.z > patchBounds.x) {
+        float lat = (0.5 - earthUV.y) * PI;
+        // Restrict to valid Web Mercator bounds (-85.05 to +85.05 deg)
+        float maxLat = 1.4844222297;
+        if (lat > -maxLat && lat < maxLat) {
+            float mercatorV = 0.5 - log(tan(PI / 4.0 + lat / 2.0)) / (2.0 * PI);
+            
+            if (patchU >= patchBounds.x && patchU <= patchBounds.z && mercatorV >= patchBounds.y && mercatorV <= patchBounds.w) {
+                vec2 localUV = vec2(
+                    (patchU - patchBounds.x) / (patchBounds.z - patchBounds.x),
+                    (mercatorV - patchBounds.y) / (patchBounds.w - patchBounds.y)
+                );
+                vec4 patchSample = textureGrad(patchTex, localUV, dx, dy);
+                
+                float edgeU = min(localUV.x, 1.0 - localUV.x);
+                float edgeV = min(localUV.y, 1.0 - localUV.y);
+                float blend = smoothstep(0.0, 0.05, min(edgeU, edgeV)) * patchSample.a;
+                
+                earthColor = mix(earthColor, patchSample.rgb, blend);
+            }
+        }
     }
     
     // ── Surface Data ──
