@@ -128,7 +128,7 @@ PanelWindow {
     // Wayland mask removed to allow the full-screen background to render.
     
     // ── Global Background (Dynamic Equirectangular Panorama) ──
-    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("../assets/textures/4k_stars_milky_way.jpg"); mipmap: true; visible: false }
+    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("../assets/textures/eso0932a.jpg"); mipmap: true; visible: false }
 
     ShaderEffect {
         id: bgSphere
