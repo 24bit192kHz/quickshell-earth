@@ -377,6 +377,27 @@ PanelWindow {
 
     // ── Removed Python HTTP patch images ────────────────
 
+    // ── Sun ──────────────────────────────────────────────
+    ShaderEffect {
+        id: sunSphere
+        x: root.vSunX; y: root.vSunY
+        width: root.vSunSize; height: root.vSunSize
+        z: -2
+        
+        opacity: {
+            if (!root.sunInFrontOfCamera) return 0.0;
+            let fadeDist = root.cameraZ * 0.3;
+            if (root.sunDistToCamera < fadeDist) {
+                return Math.max(0.0, root.sunDistToCamera / fadeDist);
+            }
+            return 1.0;
+        }
+        visible: opacity > 0
+
+        vertexShader: "../assets/shaders/sun.vert.qsb"
+        fragmentShader: "../assets/shaders/sun.frag.qsb"
+    }
+
     // ── Planet Label ─────────────────────────────────────────
     Connections {
         target: root.solarState
@@ -400,9 +421,8 @@ PanelWindow {
         style: Text.Outline
         styleColor: "#000000"
         
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: parent.height * 0.15
+        anchors.horizontalCenter: earthSphere.horizontalCenter
+        y: Math.max(parent.height * 0.15, earthSphere.y - height - 60)
         
         opacity: 0.0
         
