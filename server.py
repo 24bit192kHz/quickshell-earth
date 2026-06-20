@@ -56,16 +56,19 @@ class TileHandler(BaseHTTPRequestHandler):
         c.execute('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', (z, x, y))
         row = c.fetchone()
         
-        if row:
-            self.send_response(200)
-            self.send_header('Content-type', 'image/jpeg')
-            self.send_header('Cache-Control', 'max-age=86400')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(row[0])
+        if row and row[0] and len(row[0]) > 0:
+            data = row[0]
         else:
-            self.send_response(404)
-            self.end_headers()
+            # Auto-heal 0-byte corrupt tiles or missing tiles with a valid 1x1 black JPEG
+            # This prevents QML from flooding the console with 404s or "Unsupported image format" errors
+            data = bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffdb004300030202020202030202020303030304060404040404080606050609080a0a090809090a0c0f0c0a0b0e0b09090d110d0e0f101011100a0c12131210130f101010ffc0000b080001000101011100ffc40014000100000000000000000000000000000009ffc40014100100000000000000000000000000000000ffda0008010100003f002a9fffd9")
+            
+        self.send_response(200)
+        self.send_header('Content-type', 'image/jpeg')
+        self.send_header('Cache-Control', 'max-age=86400')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(data)
             
     def log_message(self, format, *args):
         # Suppress logging to keep terminal clean
