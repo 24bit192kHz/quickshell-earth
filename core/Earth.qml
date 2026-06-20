@@ -423,6 +423,7 @@ PanelWindow {
         
         anchors.horizontalCenter: earthSphere.horizontalCenter
         y: Math.max(parent.height * 0.15, earthSphere.y - height - 60)
+        z: 10
         
         opacity: 0.0
         
