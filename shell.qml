@@ -114,7 +114,6 @@ ShellRoot {
         property real userTiltOffset: 0
         property real userLonRad: 0
         property real timeSec: 0
-        property real targetZoomScale: 1.0
         property real zoomScale: 1.0
         property bool isDragging: false
         property bool ctrlHeld: false
@@ -164,10 +163,6 @@ ShellRoot {
         Behavior on userTiltOffset {
             enabled: !state.isDragging && !state.issModeActive
             SpringAnimation { spring: 0.4; damping: 0.15; mass: 2.0; epsilon: 0.001 }
-        }
-
-        Behavior on zoomScale {
-            SpringAnimation { spring: 3.0; damping: 0.3; mass: 1.0; epsilon: 0.001 }
         }
     }
 
