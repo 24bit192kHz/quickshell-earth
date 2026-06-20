@@ -49,7 +49,13 @@ void main() {
     // Moon is tidally locked, so angle just rotates it slowly
     vec3 pMoon = rotateY(rotateX(N, tilt), angle * TAU);
     vec2 moonUV = sphereToUV(pMoon);
-    vec3 color = texture(moonTex, moonUV).rgb;
+    
+    vec2 dx = dFdx(moonUV);
+    vec2 dy = dFdy(moonUV);
+    if (abs(dx.x) > 0.5) dx.x -= sign(dx.x);
+    if (abs(dy.x) > 0.5) dy.x -= sign(dy.x);
+    
+    vec3 color = textureGrad(moonTex, moonUV, dx, dy).rgb;
 
     // Dynamic lighting based on the true 3D light vector
     vec3 L = normalize(vec3(lightDirX, lightDirY, lightDirZ));
