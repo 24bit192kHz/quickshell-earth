@@ -283,7 +283,7 @@ void main() {
     
     // Universal starlight ambient glow so the night side of planets is never completely pitch black
     // Earth gets a very dim ambient (relying on city lights), while other planets get a massive boost
-    float ambientStrength = isEarth > 0.5 ? 0.015 : 0.25;
+    float ambientStrength = isEarth > 0.5 ? 0.015 : 0.50;
     color += earthColor * vec3(0.9, 0.95, 1.0) * ambientStrength;
 
     // ── Clouds ──
