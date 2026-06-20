@@ -94,7 +94,7 @@ PanelWindow {
     property real orbitRadius: root.baseSize * 0.9
     property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
     property real sunDistance: root.baseSize * 6.0  // True distance to the Sun
-    property real moonDistance: root.baseSize * 2.0 // True distance to the Moon
+    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 7.334 : root.baseSize * 2.0 // True distance to the Moon
 
     property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
     property real moonDistToCamera: root.cameraZ - root.moonZ3D
