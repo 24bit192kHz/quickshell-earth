@@ -193,12 +193,42 @@ PanelWindow {
         onWheel: (wheel) => {
             root.solarState.issModeActive = false
             root.solarState.lastInteractionTime = Date.now()
-            let factor = root.solarState.ctrlHeld ? 1.5 : 1.15
+            
+            let old_zoomScale = root.solarState.targetZoomScale
+            let input_factor = root.solarState.ctrlHeld ? 1.5 : 1.15
+            
             if (wheel.angleDelta.y > 0) {
-                root.solarState.targetZoomScale = Math.min(root.solarState.targetZoomScale * factor, 250.0)
+                root.solarState.targetZoomScale = Math.min(old_zoomScale * input_factor, 250.0)
             } else if (wheel.angleDelta.y < 0) {
-                root.solarState.targetZoomScale = Math.max(root.solarState.targetZoomScale / factor, 0.15)
+                root.solarState.targetZoomScale = Math.max(old_zoomScale / input_factor, 0.15)
             }
+            
+            let new_zoomScale = root.solarState.targetZoomScale
+            let actual_factor = new_zoomScale / old_zoomScale
+            
+            if (actual_factor !== 1.0) {
+                // Calculate geometric center of the Earth on THIS specific monitor
+                let center_x = root.sceneCX - root.screenGlobalX
+                let center_y = root.sceneCY - root.screenGlobalY
+                
+                let dx_before = wheel.x - center_x
+                let dy_before = wheel.y - center_y
+                
+                // The visual shift caused by scaling the Earth outwards from the center
+                let shift_x = dx_before * (1.0 - actual_factor)
+                let shift_y = dy_before * (1.0 - actual_factor)
+                
+                let new_sensitivity = 500.0 * new_zoomScale
+                
+                root.solarState.userOffsetAngle += shift_x / new_sensitivity
+                
+                // Allow tilting all the way to the poles exactly like dragging
+                let new_tilt = root.solarState.userTiltOffset + (shift_y / new_sensitivity)
+                let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0)
+                let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0)
+                root.solarState.userTiltOffset = Math.max(minTilt, Math.min(maxTilt, new_tilt))
+            }
+            
             root.solarState.zoomScale = root.solarState.targetZoomScale
         }
     }
