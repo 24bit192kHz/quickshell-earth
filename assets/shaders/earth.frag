@@ -280,6 +280,9 @@ void main() {
     // ── Day/Night Transition ──
     float terminator = smoothstep(-0.15, 0.15, nDotL);
     vec3 color = mix(nightColor, dayColor, terminator);
+    
+    // Universal starlight ambient glow so the night side of planets is never completely pitch black
+    color += earthColor * vec3(0.02, 0.025, 0.035);
 
     // ── Clouds ──
     // Multi-octave fluid noise (FBM) for realistic atmospheric flow
