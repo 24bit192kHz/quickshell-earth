@@ -27,7 +27,10 @@ def download_tile(z, x, y):
     url = BASE_URL.format(z=z, x=x, y=y)
     
     # Ensure directory exists
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+    except FileExistsError:
+        pass
     
     retries = 3
     while retries > 0:

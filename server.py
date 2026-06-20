@@ -80,14 +80,22 @@ def background_setup(port):
     if not os.path.exists(DB_FILE):
         if not os.path.exists("tiles_esri") or not os.path.exists(".download_complete"):
             print("Notice: High-res tiles not complete. Launching background download (this may take a while to resume/finish).")
-            subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
-            # Mark download complete
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"), "w") as f:
-                f.write("done")
+            try:
+                subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
+                # Mark download complete
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"), "w") as f:
+                    f.write("done")
+            except subprocess.CalledProcessError:
+                print("Error: Background download failed or was interrupted. Will resume next time.")
+                return
         
         import shutil
         print("Packing downloaded tiles into SQLite database...")
-        subprocess.run(["python3", "scripts/pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+        try:
+            subprocess.run(["python3", "scripts/pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
+        except subprocess.CalledProcessError:
+            print("Error: Packing failed.")
+            return
         
         print("Cleaning up raw tile directory to save space...")
         try:
