@@ -207,26 +207,52 @@ PanelWindow {
             let actual_factor = new_zoomScale / old_zoomScale
             
             if (actual_factor !== 1.0) {
-                // Calculate geometric center of the Earth on THIS specific monitor
-                let center_x = root.sceneCX - root.screenGlobalX
-                let center_y = root.sceneCY - root.screenGlobalY
+                let getLonLatAt = function(px, py, zoom) {
+                    let vSize = root.baseSize * zoom;
+                    let vX = root.sceneCX - vSize / 2.0 - root.screenGlobalX;
+                    let vY = root.sceneCY - vSize / 2.0 - root.screenGlobalY;
+                    
+                    let nx = (px - vX) / vSize * 2.0 - 1.0;
+                    let ny = 1.0 - (py - vY) / vSize * 2.0;
+                    
+                    let z2 = 1.0 - nx*nx - ny*ny;
+                    if (z2 < 0.0) return null; // Mouse is pointing at space
+                    
+                    let z = Math.sqrt(z2);
+                    let a = -root.cameraTilt;
+                    let c = Math.cos(a);
+                    let s = Math.sin(a);
+                    
+                    let normY = ny * c - z * s;
+                    let normZ = ny * s + z * c;
+                    let normX = nx;
+                    
+                    let lat = Math.asin(Math.max(-1.0, Math.min(1.0, normY)));
+                    
+                    let greenwichLocalRa = -root.solarState.userLonRad + root.solarState.userOffsetAngle;
+                    let sinG = Math.sin(greenwichLocalRa);
+                    let cosG = Math.cos(greenwichLocalRa);
+                    
+                    let dotEast = normX * cosG - normZ * sinG;
+                    let dotGreenwich = normX * sinG + normZ * cosG;
+                    let lon = Math.atan2(dotEast, dotGreenwich);
+                    
+                    return {lon: lon, lat: lat};
+                };
                 
-                let dx_before = wheel.x - center_x
-                let dy_before = wheel.y - center_y
+                let before = getLonLatAt(wheel.x, wheel.y, old_zoomScale);
+                let after = getLonLatAt(wheel.x, wheel.y, new_zoomScale);
                 
-                // The visual shift caused by scaling the Earth outwards from the center
-                let shift_x = dx_before * (1.0 - actual_factor)
-                let shift_y = dy_before * (1.0 - actual_factor)
-                
-                let new_sensitivity = 500.0 * new_zoomScale
-                
-                root.solarState.userOffsetAngle += shift_x / new_sensitivity
-                
-                // Allow tilting all the way to the poles exactly like dragging
-                let new_tilt = root.solarState.userTiltOffset + (shift_y / new_sensitivity)
-                let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0)
-                let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0)
-                root.solarState.userTiltOffset = Math.max(minTilt, Math.min(maxTilt, new_tilt))
+                if (before && after) {
+                    // Mathematically inverse-transform the Earth's absolute Euler rotation 
+                    // so the geographic coordinate exactly maps back to the mouse pixel
+                    root.solarState.userOffsetAngle += (after.lon - before.lon);
+                    
+                    let new_tilt = root.solarState.userTiltOffset + (before.lat - after.lat);
+                    let maxTilt = (Math.PI / 2.0) - (Math.PI / 6.0);
+                    let minTilt = -(Math.PI / 2.0) - (Math.PI / 6.0);
+                    root.solarState.userTiltOffset = Math.max(minTilt, Math.min(maxTilt, new_tilt));
+                }
             }
             
             root.solarState.zoomScale = root.solarState.targetZoomScale
