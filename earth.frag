@@ -127,13 +127,13 @@ void main() {
             (patchU - patchBounds.x) / (patchBounds.z - patchBounds.x),
             (earthUV.y - patchBounds.y) / (patchBounds.w - patchBounds.y)
         );
-        vec3 patchColor = textureGrad(patchTex, localUV, dx, dy).rgb;
+        vec4 patchSample = textureGrad(patchTex, localUV, dx, dy);
         
         float edgeU = min(localUV.x, 1.0 - localUV.x);
         float edgeV = min(localUV.y, 1.0 - localUV.y);
-        float blend = smoothstep(0.0, 0.05, min(edgeU, edgeV));
+        float blend = smoothstep(0.0, 0.05, min(edgeU, edgeV)) * patchSample.a;
         
-        earthColor = mix(earthColor, patchColor, blend);
+        earthColor = mix(earthColor, patchSample.rgb, blend);
     }
     
     // ── Surface Data ──
