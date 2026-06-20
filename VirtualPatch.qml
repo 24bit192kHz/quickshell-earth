@@ -91,18 +91,31 @@ Item {
                     tilesModel.append({
                         "tx": tx,
                         "ty": ty,
-                        "zLevel": root.zLevel
+                        "zLevel": root.zLevel,
+                        "itemNumX": root.numTilesX,
+                        "itemNumY": root.numTilesY
                     });
                 }
             }
         }
 
-        // Remove old tiles that are no longer needed
-        // Iterate backwards because we are removing items
         for (let i = tilesModel.count - 1; i >= 0; i--) {
             let item = tilesModel.get(i);
+            let tMinU = item.tx / item.itemNumX;
+            let tMaxU = (item.tx + 1) / item.itemNumX;
+            let tMinV = item.ty / item.itemNumY;
+            let tMaxV = (item.ty + 1) / item.itemNumY;
+            
+            let overlapU = (tMinU <= maxU && tMaxU >= minU);
+            let overlapV = (tMinV <= maxV && tMaxV >= minV);
             let key = item.zLevel + "_" + item.tx + "_" + item.ty;
-            if (newTiles[key] === undefined) {
+            
+            let isCurrentZoom = (item.zLevel === root.zLevel);
+            let distZoom = Math.abs(item.zLevel - root.zLevel);
+            
+            // Delete if offscreen entirely, or if it's too far from the current zoom level (> 1 step difference)
+            // Or if it's current zoom but no longer in the exact newTiles matrix (e.g. edge of screen panned out)
+            if (!overlapU || !overlapV || distZoom > 1 || (isCurrentZoom && newTiles[key] === undefined)) {
                 tilesModel.remove(i);
             }
         }
@@ -117,10 +130,11 @@ Item {
         Repeater {
             model: tilesModel
             Image {
-                x: (model.tx / root.numTilesX - root.minU) * root.numTilesX * 256
-                y: (model.ty / root.numTilesY - root.minV) * root.numTilesY * 256
-                width: 256
-                height: 256
+                x: (model.tx / model.itemNumX - root.minU) * root.numTilesX * 256
+                y: (model.ty / model.itemNumY - root.minV) * root.numTilesY * 256
+                width: 256 * (root.numTilesX / model.itemNumX)
+                height: 256 * (root.numTilesY / model.itemNumY)
+                z: model.zLevel
                 source: root.tileServerUrl !== "" ? 
                         (root.tileServerUrl + "/" + model.zLevel + "/" + model.tx + "/" + model.ty) : ""
                 asynchronous: true

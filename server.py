@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import socket
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles.db")
 PORT = 49152 # Start checking for open ports in the dynamic range
@@ -78,7 +78,7 @@ def run():
         print("ERROR: No open ports found!")
         return
         
-    server = HTTPServer(('127.0.0.1', port), TileHandler)
+    server = ThreadingHTTPServer(('127.0.0.1', port), TileHandler)
     # Output the exact URL so QML can read it via stdout
     print(f"http://127.0.0.1:{port}/tiles", flush=True)
     server.serve_forever()
