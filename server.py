@@ -3,6 +3,7 @@ import sqlite3
 import socket
 import threading
 import subprocess
+import shutil
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles.db")
@@ -81,24 +82,33 @@ def background_setup(port):
         os.remove(DB_FILE)
 
     if not os.path.exists(DB_FILE):
-        if not os.path.exists("tiles_esri") or not os.path.exists(".download_complete"):
-            print("Notice: High-res tiles not complete. Launching background download (this may take a while to resume/finish).")
-            try:
-                subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
-                # Mark download complete
-                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"), "w") as f:
-                    f.write("done")
-            except subprocess.CalledProcessError:
-                print("Error: Background download failed or was interrupted. Will resume next time.")
-                return
-        
-        import shutil
-        print("Packing downloaded tiles into SQLite database...")
+        print("Notice: High-res tiles database not found. Attempting fast download from R2 CDN...")
         try:
-            subprocess.run(["python3", "scripts/pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
-        except subprocess.CalledProcessError:
-            print("Error: Packing failed.")
-            return
+            db_url = "https://pub-1c08266943074f0e972a56ce9782e015.r2.dev/tiles.db"
+            subprocess.run(["curl", "-L", "-f", "-o", DB_FILE, db_url], check=True)
+            print("Successfully downloaded tiles.db from R2 CDN!")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("Notice: Fast R2 download failed. Falling back to downloading individual tiles (this may take a while)...")
+            if os.path.exists(DB_FILE):
+                os.remove(DB_FILE)
+                
+            if not os.path.exists("tiles_esri") or not os.path.exists(".download_complete"):
+                print("Notice: High-res tiles not complete. Launching background download (this may take a while to resume/finish).")
+                try:
+                    subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
+                    # Mark download complete
+                    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"), "w") as f:
+                        f.write("done")
+                except subprocess.CalledProcessError:
+                    print("Error: Background download failed or was interrupted. Will resume next time.")
+                    return
+            
+            print("Packing downloaded tiles into SQLite database...")
+            try:
+                subprocess.run(["python3", "scripts/pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)), check=True)
+            except subprocess.CalledProcessError:
+                print("Error: Packing failed.")
+                return
         
         print("Cleaning up raw tile directory to save space...")
         try:
