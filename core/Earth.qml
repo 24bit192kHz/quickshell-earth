@@ -253,8 +253,37 @@ PanelWindow {
         let lon_range = Math.asin(Math.min(1.0, max_visible_x));
         let lat_range = Math.asin(Math.min(1.0, max_visible_y));
         
+        // Raycast from the center of THIS specific monitor to the sphere
+        let screenCenterLocalX = root.width / 2.0 - root.vEarthX;
+        let screenCenterLocalY = root.height / 2.0 - root.vEarthY;
+        
+        let x = (screenCenterLocalX / root.vEarthSize) * 2.0 - 1.0;
+        let y = 1.0 - (screenCenterLocalY / root.vEarthSize) * 2.0;
+        
         let center_lon = root.solarState.userLonRad - root.solarState.userOffsetAngle;
         let center_lat = root.cameraTilt;
+        
+        let z2 = 1.0 - x*x - y*y;
+        if (z2 >= 0.0) {
+            let z = Math.sqrt(z2);
+            let a = -root.cameraTilt;
+            let c = Math.cos(a);
+            let s = Math.sin(a);
+            
+            let normY = y * c - z * s;
+            let normZ = y * s + z * c;
+            let normX = x;
+            
+            center_lat = Math.asin(Math.max(-1.0, Math.min(1.0, normY)));
+            
+            let greenwichLocalRa = -root.solarState.userLonRad + root.solarState.userOffsetAngle;
+            let sinG = Math.sin(greenwichLocalRa);
+            let cosG = Math.cos(greenwichLocalRa);
+            
+            let dotEast = normX * cosG - normZ * sinG;
+            let dotGreenwich = normX * sinG + normZ * cosG;
+            center_lon = Math.atan2(dotEast, dotGreenwich);
+        }
         
         let u_center = (center_lon / (2.0 * Math.PI)) + 0.5;
         u_center = u_center - Math.floor(u_center);
@@ -266,7 +295,6 @@ PanelWindow {
         
         // Fetch a patch slightly larger than the screen to avoid edge pop-in
         let bufferU = (lon_range / (2.0 * Math.PI)) * 1.5;
-        // Web Mercator V scales by 1/cos(lat)
         let mercator_scale = 1.0 / Math.max(0.01, Math.cos(clamped_lat));
         let bufferV = (lat_range / (2.0 * Math.PI)) * 1.5 * mercator_scale;
         
