@@ -17,7 +17,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 patchBounds;
     float patchReady;
     float cloudOpacity;
-    bool isEarth;
+    float isEarth;
 };
 
 layout(binding = 1) uniform sampler2D earthTex;
@@ -152,13 +152,13 @@ void main() {
     }
     
     // ── Surface Data ──
-    float waterMask = isEarth ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
-    float bump = isEarth ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
+    float waterMask = isEarth > 0.5 ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
+    float bump = isEarth > 0.5 ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
     
     // ── Seamless Date Line Blending ──
     // Only runs for the ~0.1% of pixels right at the seam
     float seamDist = min(earthUV.x, 1.0 - earthUV.x);
-    if (isEarth && seamDist < 0.001) {
+    if (isEarth > 0.5 && seamDist < 0.001) {
         float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
         vec2 altUV = vec2(altX, earthUV.y);
         float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
@@ -176,10 +176,10 @@ void main() {
     duUV.x = fract_safe(duUV.x);
     vec2 dvUV = earthUV + vec2(0.0, texel.y);
     
-    float bumpDu = isEarth ? textureGrad(bumpTex, duUV, dx, dy).r : 0.0;
-    float bumpDv = isEarth ? textureGrad(bumpTex, dvUV, dx, dy).r : 0.0;
+    float bumpDu = isEarth > 0.5 ? textureGrad(bumpTex, duUV, dx, dy).r : 0.0;
+    float bumpDv = isEarth > 0.5 ? textureGrad(bumpTex, dvUV, dx, dy).r : 0.0;
     
-    if (isEarth && seamDist < 0.001) {
+    if (isEarth > 0.5 && seamDist < 0.001) {
         float altXdu = duUV.x < 0.5 ? 1.0 : 0.0;
         float blendDu = 0.5 + 0.5 * (min(duUV.x, 1.0 - duUV.x) / 0.001);
         bumpDu = mix(textureGrad(bumpTex, vec2(altXdu, duUV.y), dx, dy).r, bumpDu, blendDu);
@@ -230,7 +230,7 @@ void main() {
     vec3 dayColor = earthColor * diffuse + vec3(1.0, 0.95, 0.8) * specular + vec3(1.0) * softSpecular;
 
     // ── Atmospheric Scattering ──
-    if (isEarth) {
+    if (isEarth > 0.5) {
         // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
         // in screen-space, independent of camera tilt.
         float atmosThickness = pow(1.0 - max(sphereNorm.z, 0.0), 3.5);
@@ -249,7 +249,7 @@ void main() {
     // ── Night City Lights ──
     vec3 nightColor = vec3(0.0);
     
-    if (isEarth) {
+    if (isEarth > 0.5) {
         nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
         
         if (seamDist < 0.001) {

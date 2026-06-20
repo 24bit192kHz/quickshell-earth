@@ -406,7 +406,7 @@ PanelWindow {
         width: root.vEarthSize; height: root.vEarthSize
         z: 0
 
-        property bool isEarth: root.solarState.activePlanet === "earth"
+        property real isEarth: root.solarState.activePlanet === "earth" ? 1.0 : 0.0
 
         property real utcDaysMod: root.utcDaysMod
         property real cameraTilt: root.cameraTilt
