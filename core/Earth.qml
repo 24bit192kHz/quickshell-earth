@@ -281,6 +281,7 @@ PanelWindow {
     Image { id: cloudTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
 
     Image { id: moonTexSrc; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
+    Image { id: saturnRingTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
     property real patchMinU: 0.0
@@ -470,6 +471,34 @@ PanelWindow {
 
         vertexShader: "../assets/shaders/earth.vert.qsb"
         fragmentShader: "../assets/shaders/earth.frag.qsb"
+    }
+
+    // ── Saturn Rings ─────────────────────────────────────────
+    ShaderEffect {
+        id: saturnRing
+        visible: root.solarState.activePlanet === "saturn"
+        
+        // 3x larger than the planet to accommodate the rings (outer edge ~2.27x)
+        x: root.vEarthX - root.vEarthSize
+        y: root.vEarthY - root.vEarthSize
+        width: root.vEarthSize * 3.0
+        height: root.vEarthSize * 3.0
+        z: 1  // Rendered on top of earthSphere, shader will clip fragments behind the sphere
+
+        property real utcDaysMod: 0.0
+        property real cameraTilt: root.cameraTilt
+        property real time: 0.0
+        property real gmst: root.solarState.gmst
+        property real sunRa: root.solarState.sunRa
+        property real sunDec: root.solarState.sunDec
+        property real userLonRad: root.solarState.userLonRad
+        property real userOffsetAngle: root.userOffsetAngle
+        property real cloudOpacity: 0.0
+        
+        property var ringTex: saturnRingTexSrc
+
+        vertexShader: "../assets/shaders/earth.vert.qsb" // Standard pass-through vertex shader
+        fragmentShader: "../assets/shaders/saturn_ring.frag.qsb"
     }
 
     // ── Satellite (Moon or Earth) ────────────────────────
