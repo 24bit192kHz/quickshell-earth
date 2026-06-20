@@ -193,7 +193,8 @@ PanelWindow {
         onWheel: (wheel) => {
             root.solarState.issModeActive = false
             root.solarState.lastInteractionTime = Date.now()
-            let factor = root.solarState.ctrlHeld ? 1.5 : 1.15
+            let ctrlHeld = (wheel.modifiers & Qt.ControlModifier) !== 0
+            let factor = ctrlHeld ? 1.5 : 1.15
             if (wheel.angleDelta.y > 0) {
                 root.solarState.zoomScale = Math.min(root.solarState.zoomScale * factor, 250.0)
             } else if (wheel.angleDelta.y < 0) {

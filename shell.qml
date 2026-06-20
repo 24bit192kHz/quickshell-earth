@@ -116,7 +116,7 @@ ShellRoot {
         property real timeSec: 0
         property real zoomScale: 1.0
         property bool isDragging: false
-        property bool ctrlHeld: false
+
         property bool issModeActive: false
         property real issPhase: 0.0 // Phase of the ISS orbit (0 to 2PI)
         property real issOmega: 0.0 // Right Ascension of the ascending node
@@ -169,20 +169,6 @@ ShellRoot {
         }
     }
 
-    // ── Key Monitor (Ctrl) ─────────────────
-    Process {
-        id: ctrlProc
-        command: ["python3", Qt.resolvedUrl("ctrl_monitor.py").toString().replace("file://", "")]
-        running: true
-
-        stdout: SplitParser {
-            onRead: data => {
-                let trimmed = data.trim()
-                if (trimmed === "1") state.ctrlHeld = true
-                else if (trimmed === "0") state.ctrlHeld = false
-            }
-        }
-    }
 
     // ── Real-Time Astronomy Engine ───────────────────────
     property real lastAstroCalc: 0
