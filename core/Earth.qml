@@ -448,6 +448,7 @@ PanelWindow {
         z: 0
 
         property real isEarth: root.solarState.activePlanet === "earth" ? 1.0 : 0.0
+        property real isSaturn: root.solarState.activePlanet === "saturn" ? 1.0 : 0.0
 
         property real utcDaysMod: root.utcDaysMod
         property real cameraTilt: root.cameraTilt
@@ -493,7 +494,11 @@ PanelWindow {
         property real sunDec: root.solarState.sunDec
         property real userLonRad: root.solarState.userLonRad
         property real userOffsetAngle: root.userOffsetAngle
+        property vector4d patchBounds: Qt.vector4d(0,0,0,0)
+        property real patchReady: 0.0
         property real cloudOpacity: 0.0
+        property real isEarth: 0.0
+        property real isSaturn: 1.0
         
         property var ringTex: saturnRingTexSrc
 

@@ -18,6 +18,7 @@ layout(std140, binding = 0) uniform buf {
     float patchReady;
     float cloudOpacity;
     float isEarth;
+    float isSaturn;
 };
 
 layout(binding = 1) uniform sampler2D earthTex;
@@ -230,7 +231,7 @@ void main() {
     vec3 dayColor = earthColor * diffuse + vec3(1.0, 0.95, 0.8) * specular + vec3(1.0) * softSpecular;
 
     // ── Saturn Ring Shadows on Planet ──
-    if (isEarth < 0.5) {
+    if (isSaturn > 0.5) {
         // If the ray from the planet surface towards the sun intersects the equatorial plane (y=0)
         // at a distance between 1.11 and 2.27 radii, the planet is in the shadow of the rings.
         // We use earthNorm, which is the planet-space position of the surface point.
