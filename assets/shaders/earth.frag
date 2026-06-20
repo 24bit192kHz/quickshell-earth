@@ -229,6 +229,26 @@ void main() {
     // ── Day Color ──
     vec3 dayColor = earthColor * diffuse + vec3(1.0, 0.95, 0.8) * specular + vec3(1.0) * softSpecular;
 
+    // ── Saturn Ring Shadows on Planet ──
+    if (isEarth < 0.5) {
+        // If the ray from the planet surface towards the sun intersects the equatorial plane (y=0)
+        // at a distance between 1.11 and 2.27 radii, the planet is in the shadow of the rings.
+        // We use earthNorm, which is the planet-space position of the surface point.
+        if (abs(sunVec.y) > 0.001) {
+            float t = -earthNorm.y / sunVec.y;
+            if (t > 0.0) {
+                vec3 pRing = earthNorm + t * sunVec;
+                float rDist = length(pRing);
+                if (rDist > 1.11 && rDist < 2.27) {
+                    // Approximate the ring alpha profile using a procedural gap for the Cassini division
+                    float ringAlpha = 0.8;
+                    if (rDist > 1.95 && rDist < 2.02) ringAlpha = 0.2; // Cassini division
+                    dayColor *= mix(1.0, 0.1, ringAlpha);
+                }
+            }
+        }
+    }
+
     // ── Atmospheric Scattering ──
     if (isEarth > 0.5) {
         // Use sphereNorm.z instead of earthNorm.z so the atmosphere thickness is calculated 
