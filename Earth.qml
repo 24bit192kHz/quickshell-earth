@@ -76,16 +76,18 @@ PanelWindow {
     // ── Camera Projection ──────────────────────────────
     property real cameraTilt: root.solarState.userTiltOffset + Math.PI / 6.0 // Look down slightly
 
-    // Apply Camera Tilt to Celestial Bodies
-    // We intentionally decouple the Sun and Moon from the camera tilt so they remain
-    // beautifully framed in the background sky rather than sweeping wildly off-screen.
+    // Apply Camera Tilt to Celestial Bodies (10% parallax to match stars)
+    property real tiltParallax: root.solarState.userTiltOffset * 0.1
+    property real tiltCos: Math.cos(tiltParallax)
+    property real tiltSin: Math.sin(tiltParallax)
+
     property real sunX3D: baseSunX
-    property real sunY3D: baseSunY
-    property real sunZ3D: baseSunZ
+    property real sunY3D: baseSunY * tiltCos - baseSunZ * tiltSin
+    property real sunZ3D: baseSunY * tiltSin + baseSunZ * tiltCos
 
     property real moonX3D: baseMoonX
-    property real moonY3D: baseMoonY
-    property real moonZ3D: baseMoonZ
+    property real moonY3D: baseMoonY * tiltCos - baseMoonZ * tiltSin
+    property real moonZ3D: baseMoonY * tiltSin + baseMoonZ * tiltCos
 
 
     // ── 3D Scene Properties ──────────────────────────────
