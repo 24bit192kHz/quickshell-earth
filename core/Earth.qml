@@ -195,10 +195,11 @@ PanelWindow {
             root.solarState.lastInteractionTime = Date.now()
             let factor = root.solarState.ctrlHeld ? 1.5 : 1.15
             if (wheel.angleDelta.y > 0) {
-                root.solarState.zoomScale = Math.min(root.solarState.zoomScale * factor, 250.0)
+                root.solarState.targetZoomScale = Math.min(root.solarState.targetZoomScale * factor, 250.0)
             } else if (wheel.angleDelta.y < 0) {
-                root.solarState.zoomScale = Math.max(root.solarState.zoomScale / factor, 0.15)
+                root.solarState.targetZoomScale = Math.max(root.solarState.targetZoomScale / factor, 0.15)
             }
+            root.solarState.zoomScale = root.solarState.targetZoomScale
         }
     }
 

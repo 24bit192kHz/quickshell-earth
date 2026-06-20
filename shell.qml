@@ -114,6 +114,7 @@ ShellRoot {
         property real userTiltOffset: 0
         property real userLonRad: 0
         property real timeSec: 0
+        property real targetZoomScale: 1.0
         property real zoomScale: 1.0
         property bool isDragging: false
         property bool ctrlHeld: false
@@ -166,7 +167,7 @@ ShellRoot {
         }
 
         Behavior on zoomScale {
-            NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+            SpringAnimation { spring: 3.0; damping: 0.3; mass: 1.0; epsilon: 0.001 }
         }
     }
 
