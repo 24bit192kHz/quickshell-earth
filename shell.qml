@@ -81,7 +81,7 @@ ShellRoot {
                     console.log("Centered Earth on", data.city + ",", data.country, "(Lon:", data.lon + ")")
                     
                     // Now that we are perfectly centered over the user, start the orbit seamlessly!
-                    state.startIssOrbit()
+                    //state.startIssOrbit()
                 }
             } catch(e) {
                 console.error("Failed to parse location:", e)
@@ -192,7 +192,7 @@ ShellRoot {
             
             // Execute ISS Orbital Dynamics
             if (!state.issModeActive && (ms - state.lastInteractionTime) > 30000) {
-                state.startIssOrbit()
+                //state.startIssOrbit()
                 astroTimer.interval = 16 // Instantly switch to smooth 60fps
             }
             
