@@ -70,7 +70,7 @@ Item {
         let ty_end = Math.min(numTilesY - 1, Math.floor(px_maxY / 256));
 
         // Prevent too many tiles if something goes wrong
-        if ((tx_end - tx_start + 1) * (ty_end - ty_start + 1) > 100) return;
+        if ((tx_end - tx_start + 1) * (ty_end - ty_start + 1) > 600) return;
 
         // Build a set of what is currently in the model
         let currentTiles = {};
@@ -125,6 +125,8 @@ Item {
                         (root.tileServerUrl + "/" + model.zLevel + "/" + model.tx + "/" + model.ty) : ""
                 asynchronous: true
                 fillMode: Image.Stretch
+                opacity: status === Image.Ready ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
             }
         }
     }

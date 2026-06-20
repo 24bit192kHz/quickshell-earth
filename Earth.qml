@@ -245,7 +245,7 @@ PanelWindow {
         let max_visible_x = root.width / vEarthSize;
         let max_visible_y = root.height / vEarthSize;
         
-        if (max_visible_x > 0.8 || max_visible_y > 0.8) {
+        if (max_visible_x > 1.5 || max_visible_y > 1.5) {
             root.patchMinU = 0; root.patchMaxU = 0; root.patchMinV = 0; root.patchMaxV = 0;
             return;
         }

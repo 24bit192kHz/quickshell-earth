@@ -28,7 +28,7 @@ for row in range(rows):
             for dx in range(5):
                 native_x = col * 5 + dx
                 native_y = row * 5 + dy
-                path = f"tiles/7/{native_x}/{native_y}.jpeg"
+                path = f"tiles_esri/7/{native_x}/{native_y}.jpeg"
                 if os.path.exists(path):
                     try:
                         tile = Image.open(path).convert('RGB')

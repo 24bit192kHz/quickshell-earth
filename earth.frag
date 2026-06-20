@@ -136,11 +136,16 @@ void main() {
                 );
                 vec4 patchSample = textureGrad(patchTex, localUV, dx, dy);
                 
-                float edgeU = min(localUV.x, 1.0 - localUV.x);
-                float edgeV = min(localUV.y, 1.0 - localUV.y);
-                float blend = smoothstep(0.0, 0.05, min(edgeU, edgeV)) * patchSample.a;
+                vec3 pColor = patchSample.rgb;
                 
-                earthColor = mix(earthColor, patchSample.rgb, blend);
+                // Color match ESRI chunks to NASA Blue Marble
+                // ESRI is slightly brighter and less saturated. We darken it slightly and boost contrast.
+                pColor = pow(pColor, vec3(1.15));
+                
+                float blend = smoothstep(0.0, 0.05, min(min(localUV.x, 1.0 - localUV.x), min(localUV.y, 1.0 - localUV.y)));
+                // Smoothly crossfade using the QML tile's fade-in alpha channel
+                float finalBlend = blend * patchSample.a;
+                earthColor = mix(earthColor, pColor, finalBlend);
             }
         }
     }
