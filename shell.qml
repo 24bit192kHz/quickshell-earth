@@ -155,8 +155,6 @@ ShellRoot {
         // Which planet to render ("earth", "mercury", "venus_surface", "mars", "jupiter", "saturn", "uranus", "neptune")
         property string activePlanet: "earth"
 
-        property real issOmega: 0
-        property real issPhase: 0
         property real sunRa: 0
         property real sunDec: 0
         property real moonRa: 0
