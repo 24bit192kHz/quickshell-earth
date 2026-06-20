@@ -257,8 +257,16 @@ void main() {
     // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).
     // By modulating night lights with day luma, the lights snap perfectly to high-res streets and buildings.
     float earthLuma = dot(earthColor, vec3(0.299, 0.587, 0.114));
-    float highResMask = smoothstep(0.05, 0.5, earthLuma) * 1.5;
-    nightColor *= mix(1.0, highResMask, patchBlendFactor);
+    float highResMask = smoothstep(0.1, 0.7, earthLuma);
+    
+    // We only sharpen the intensely bright parts of the night map (the lights)
+    // To prevent the faint blue land background from being modified, we only apply the mask where the night map is bright.
+    float nightBrightness = dot(nightColor, vec3(0.333));
+    float isLightMask = smoothstep(0.05, 0.2, nightBrightness);
+    
+    // Blend the sharpening effect in
+    float finalSharpening = mix(1.0, mix(1.0, highResMask, isLightMask), patchBlendFactor);
+    nightColor *= finalSharpening;
     
     nightColor *= 2.0;
 
