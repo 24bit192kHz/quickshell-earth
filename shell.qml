@@ -166,30 +166,34 @@ ShellRoot {
     }
 
     // ── Real-Time Astronomy Engine ───────────────────────
+    property real lastAstroCalc: 0
     Timer {
-        interval: 16 // 60fps
+        id: astroTimer
+        interval: state.issModeActive ? 16 : 1000 // 60fps during ISS flight, 1fps when static
         running: true
         repeat: true
         onTriggered: {
             let ms = Date.now()
-            let now = new Date(ms)
             
-            // Fast time for shader animations (lightning, etc)
-            state.timeSec = (ms % 1000000) / 1000.0
-            
-            // Execute rigorous astronomical algorithms
-            let astro = Astro.calculateAstronomy(ms, state.userLonRad)
-            state.sunRa = astro.sun_ra
-            state.sunDec = astro.sun_dec
-            state.moonRa = astro.moon_ra
-            state.moonDec = astro.moon_dec
-            state.gmst = astro.gmst_rad
-            state.eps = astro.eps_rad
-            state.utcDaysMod = (ms / 86400000.0) % 1.0
+            // Only update fast animations and astro math if flying or 1 second has passed
+            if (ms - lastAstroCalc > 1000 || state.issModeActive) {
+                lastAstroCalc = ms
+                
+                // Execute rigorous astronomical algorithms
+                let astro = Astro.calculateAstronomy(ms, state.userLonRad)
+                state.sunRa = astro.sun_ra
+                state.sunDec = astro.sun_dec
+                state.moonRa = astro.moon_ra
+                state.moonDec = astro.moon_dec
+                state.gmst = astro.gmst_rad
+                state.eps = astro.eps_rad
+                state.utcDaysMod = (ms / 86400000.0) % 1.0
+            }
             
             // Execute ISS Orbital Dynamics
             if (!state.issModeActive && (ms - state.lastInteractionTime) > 30000) {
                 state.startIssOrbit()
+                astroTimer.interval = 16 // Instantly switch to smooth 60fps
             }
             
             if (state.issModeActive) {
@@ -210,7 +214,6 @@ ShellRoot {
                 let targetRa = state.issOmega + alpha
                 
                 // Keep the camera locked exactly to the orbital position over the rotating Earth
-                // targetRa = gmst + userLonRad - userOffsetAngle
                 state.userOffsetAngle = state.gmst + state.userLonRad - targetRa
             }
         }
