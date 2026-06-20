@@ -121,6 +121,7 @@ ShellRoot {
         property real zoomScale: 1.0
         property bool isDragging: false
         property bool ctrlHeld: false
+        property bool isSwitchingPlanet: false
 
         property bool issModeActive: false
         property real issPhase: 0.0 // Phase of the ISS orbit (0 to 2PI)
@@ -161,6 +162,7 @@ ShellRoot {
         property string activePlanet: planets[activePlanetIndex]
         
         onActivePlanetIndexChanged: {
+            isSwitchingPlanet = true
             savedRotations[previousPlanetIndex] = targetUserOffsetAngle
             savedTilts[previousPlanetIndex] = targetUserTiltOffset
             
@@ -172,6 +174,7 @@ ShellRoot {
             
             previousPlanetIndex = activePlanetIndex
             shell.forceAstroUpdate()
+            isSwitchingPlanet = false
         }
 
         property real sunRa: 0
@@ -190,11 +193,11 @@ ShellRoot {
             NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
         }
         Behavior on userOffsetAngle {
-            enabled: !state.isDragging && !state.issModeActive
+            enabled: !state.isDragging && !state.issModeActive && !state.isSwitchingPlanet
             NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
         }
         Behavior on userTiltOffset {
-            enabled: !state.isDragging && !state.issModeActive
+            enabled: !state.isDragging && !state.issModeActive && !state.isSwitchingPlanet
             NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
         }
 
