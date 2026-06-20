@@ -73,9 +73,12 @@ class TileHandler(BaseHTTPRequestHandler):
 
 def background_setup(port):
     if not os.path.exists(DB_FILE):
-        if not os.path.exists("tiles_esri") or len(os.listdir("tiles_esri")) == 0:
-            print("Notice: High-res tiles not found. Launching background download (this may take a while).")
+        if not os.path.exists("tiles_esri") or not os.path.exists(".download_complete"):
+            print("Notice: High-res tiles not complete. Launching background download (this may take a while to resume/finish).")
             subprocess.run(["python3", "scripts/download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+            # Mark download complete
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"), "w") as f:
+                f.write("done")
         
         import shutil
         print("Packing downloaded tiles into SQLite database...")
@@ -84,6 +87,7 @@ def background_setup(port):
         print("Cleaning up raw tile directory to save space...")
         try:
             shutil.rmtree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles_esri"))
+            os.remove(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".download_complete"))
         except: pass
         
         print("Setup complete! High-res chunks are now active.")
