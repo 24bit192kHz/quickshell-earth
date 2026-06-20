@@ -377,28 +377,45 @@ PanelWindow {
 
     // ── Removed Python HTTP patch images ────────────────
 
-    // ── Sun ──────────────────────────────────────────────
-    ShaderEffect {
-        id: sunSphere
-        x: root.vSunX; y: root.vSunY
-        width: root.vSunSize; height: root.vSunSize
-        z: -2
-        
-        opacity: {
-            if (!root.sunInFrontOfCamera) return 0.0;
-            // Fade out smoothly as it sweeps past the camera
-            let fadeDist = root.cameraZ * 0.3; // start fading when within 30% of camera plane
-            if (root.sunDistToCamera < fadeDist) {
-                return Math.max(0.0, root.sunDistToCamera / fadeDist);
-            }
-            return 1.0;
+    // ── Planet Label ─────────────────────────────────────────
+    Connections {
+        target: root.solarState
+        function onActivePlanetChanged() {
+            planetLabel.opacity = 0.8
+            labelTimer.restart()
         }
-        visible: opacity > 0
-
-        vertexShader: "../assets/shaders/sun.vert.qsb"
-        fragmentShader: "../assets/shaders/sun.frag.qsb"
     }
 
+    Text {
+        id: planetLabel
+        text: {
+            let name = root.solarState.activePlanet
+            if (name === "venus_surface") return "VENUS"
+            return name.toUpperCase()
+        }
+        color: "#ffffff"
+        font.pixelSize: 72
+        font.weight: 800
+        font.letterSpacing: 32
+        style: Text.Outline
+        styleColor: "#000000"
+        
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: parent.height * 0.15
+        
+        opacity: 0.0
+        
+        Behavior on opacity {
+            NumberAnimation { duration: 800; easing.type: Easing.InOutQuad }
+        }
+
+        Timer {
+            id: labelTimer
+            interval: 1500
+            onTriggered: planetLabel.opacity = 0.0
+        }
+    }
     // ── Earth ────────────────────────────────────────────
     ShaderEffect {
         id: earthSphere
