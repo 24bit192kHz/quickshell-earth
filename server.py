@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import socket
+import threading
+import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles.db")
@@ -69,9 +71,25 @@ class TileHandler(BaseHTTPRequestHandler):
         # Suppress logging to keep terminal clean
         pass
 
-def run():
+def background_setup():
     if not os.path.exists(DB_FILE):
-        print(f"ERROR: {DB_FILE} not found. Server will return 404 for all requests.")
+        if not os.path.exists("tiles_esri") or len(os.listdir("tiles_esri")) == 0:
+            print("Notice: High-res tiles not found. Launching background download (this may take a while).")
+            subprocess.run(["python3", "download_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+        
+        import shutil
+        print("Packing downloaded tiles into SQLite database...")
+        subprocess.run(["python3", "pack_tiles.py"], cwd=os.path.dirname(os.path.abspath(__file__)))
+        
+        print("Cleaning up raw tile directory to save space...")
+        try:
+            shutil.rmtree(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles_esri"))
+        except: pass
+        
+        print("Setup complete! High-res chunks are now active.")
+
+def run():
+    threading.Thread(target=background_setup, daemon=True).start()
         
     port = find_open_port(PORT)
     if not port:
