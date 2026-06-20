@@ -162,19 +162,24 @@ ShellRoot {
         property string activePlanet: planets[activePlanetIndex]
         
         onActivePlanetIndexChanged: {
-            isSwitchingPlanet = true
+            state.isSwitchingPlanet = true
             savedRotations[previousPlanetIndex] = targetUserOffsetAngle
             savedTilts[previousPlanetIndex] = targetUserTiltOffset
             
-            targetUserOffsetAngle = savedRotations[activePlanetIndex]
-            userOffsetAngle = targetUserOffsetAngle
-            
-            targetUserTiltOffset = savedTilts[activePlanetIndex]
-            userTiltOffset = targetUserTiltOffset
-            
-            previousPlanetIndex = activePlanetIndex
-            shell.forceAstroUpdate()
-            isSwitchingPlanet = false
+            // Yield a frame to guarantee QML evaluates isSwitchingPlanet=true and disables animations
+            Qt.callLater(function() {
+                targetUserOffsetAngle = savedRotations[activePlanetIndex]
+                userOffsetAngle = targetUserOffsetAngle
+                
+                targetUserTiltOffset = savedTilts[activePlanetIndex]
+                userTiltOffset = targetUserTiltOffset
+                
+                previousPlanetIndex = activePlanetIndex
+                shell.forceAstroUpdate()
+                
+                // Yield another frame before re-enabling animations
+                Qt.callLater(function() { state.isSwitchingPlanet = false })
+            })
         }
 
         property real sunRa: 0
@@ -222,7 +227,8 @@ ShellRoot {
     function forceAstroUpdate() {
         let ms = Date.now()
         lastAstroCalc = ms
-        let astro = Astro.calculateAstronomy(ms, state.userLonRad, state.activePlanet)
+        let currentPlanet = state.planets[state.activePlanetIndex]
+        let astro = Astro.calculateAstronomy(ms, state.userLonRad, currentPlanet)
         state.sunRa = astro.sun_ra
         state.sunDec = astro.sun_dec
         state.moonRa = astro.moon_ra
