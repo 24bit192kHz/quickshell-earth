@@ -132,7 +132,7 @@ PanelWindow {
     // Wayland mask removed to allow the full-screen background to render.
     
     // ── Global Background (Dynamic Equirectangular Panorama) ──
-    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: milkyWayTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); sourceSize: Qt.size(root.optTexWidth, root.optTexHeight); mipmap: true; visible: false }
 
     ShaderEffect {
         id: bgSphere
@@ -271,26 +271,32 @@ PanelWindow {
     // ── Sun depth ────────────────────────────────────────
     // Depth handled by perspective projection above
 
+    // ── Dynamic Texture Sizing ───────────────────────────
+    property int optTexHeight: Math.min(4096, Math.max(1024, Math.ceil(root.primaryScreenHeight * 1.5)))
+    property int optTexWidth: optTexHeight * 2
+    property int halfTexHeight: Math.max(1024, Math.ceil(optTexHeight / 2.0))
+    property int halfTexWidth: halfTexHeight * 2
+
     // ── Textures ─────────────────────────────────────────
-    Image { id: earthImg; sourceSize: root.solarState.activePlanet === "earth" || root.solarState.activePlanet === "moon" ? Qt.size(4096, 2048) : Qt.size(2048, 1024); source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
+    Image { id: earthImg; sourceSize: root.solarState.activePlanet === "earth" || root.solarState.activePlanet === "moon" ? Qt.size(root.optTexWidth, root.optTexHeight) : Qt.size(root.halfTexWidth, root.halfTexHeight); source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
     ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat }
     
-    Image { id: nightImg; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(2048, 1024); mipmap: true; visible: false }
+    Image { id: nightImg; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(root.halfTexWidth, root.halfTexHeight); mipmap: true; visible: false }
     ShaderEffectSource { id: nightTexSrc; sourceItem: nightImg; wrapMode: ShaderEffectSource.Repeat }
     
-    Image { id: bumpImg; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: bumpImg; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(root.optTexWidth, root.optTexHeight); mipmap: true; visible: false }
     ShaderEffectSource { id: bumpTexSrc; sourceItem: bumpImg; wrapMode: ShaderEffectSource.Repeat }
     
-    Image { id: waterImg; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(2048, 1024); mipmap: true; visible: false }
+    Image { id: waterImg; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(root.halfTexWidth, root.halfTexHeight); mipmap: true; visible: false }
     ShaderEffectSource { id: waterTexSrc; sourceItem: waterImg; wrapMode: ShaderEffectSource.Repeat }
     
-    Image { id: cloudImg; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: cloudImg; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); sourceSize: Qt.size(root.optTexWidth, root.optTexHeight); mipmap: true; visible: false }
     ShaderEffectSource { id: cloudTexSrc; sourceItem: cloudImg; wrapMode: ShaderEffectSource.Repeat }
 
-    Image { id: moonImg; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); sourceSize: Qt.size(2048, 1024); mipmap: true; visible: false }
+    Image { id: moonImg; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); sourceSize: Qt.size(root.halfTexWidth, root.halfTexHeight); mipmap: true; visible: false }
     ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat }
     
-    Image { id: saturnRingImg; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); sourceSize: Qt.size(1024, 128); mipmap: true; visible: false }
+    Image { id: saturnRingImg; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); sourceSize: Qt.size(root.halfTexWidth / 2, 128); mipmap: true; visible: false }
     ShaderEffectSource { id: saturnRingTexSrc; sourceItem: saturnRingImg; wrapMode: ShaderEffectSource.Repeat }
 
     // ── Native Virtual Texturing ─────────────────────────
