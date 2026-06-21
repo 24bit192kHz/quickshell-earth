@@ -113,13 +113,14 @@ void main() {
     float illumination = 0.0;
     if (lightSide > 0.0) {
         // Front-lit: sun is on the same side as the camera
-        illumination = lightSide + 0.05;
+        illumination = lightSide + 0.2;
     } else {
         // Back-lit: sun is on the opposite side.
         // Ice particles scatter light forward! Dense rings (high alpha) block light and look dark.
         // Sparse rings (low alpha) let light through and glow.
-        float scattering = pow(1.0 - texColor.a, 2.0) * 1.5;
-        illumination = abs(lightSide) * scattering + 0.05;
+        float scattering = pow(1.0 - texColor.a, 2.0) * 2.0;
+        // Increase base ambient so it doesn't look like a black rendering glitch
+        illumination = abs(lightSide) * scattering + 0.35;
     }
     
     texColor.rgb *= shadow * illumination * 2.5; // Boost brightness slightly
