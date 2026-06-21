@@ -70,40 +70,6 @@ ShellRoot {
         }
     }
 
-    // ── Global Shared Textures (Prevents multi-monitor VRAM duplication) ─
-    Item {
-        id: globalTextures
-        visible: false
-        
-        property alias milkyWayTexSrc: milkyWayTexSrc
-        property alias earthTexSrc: earthTexSrc
-        property alias nightTexSrc: nightTexSrc
-        property alias bumpTexSrc: bumpTexSrc
-        property alias waterTexSrc: waterTexSrc
-        property alias cloudTexSrc: cloudTexSrc
-        property alias moonTexSrc: moonTexSrc
-        property alias saturnRingTexSrc: saturnRingTexSrc
-
-        Image { id: milkyWayImg; asynchronous: true; sourceSize: Qt.size(shell.primaryPhysicalWidth * 2, shell.primaryPhysicalHeight * 2); source: Qt.resolvedUrl("assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
-        ShaderEffectSource { id: milkyWayTexSrc; sourceItem: milkyWayImg; wrapMode: ShaderEffectSource.Repeat; textureSize: Qt.size(milkyWayImg.implicitWidth, milkyWayImg.implicitHeight) }
-
-        Image { id: earthImg; asynchronous: true; source: state.activePlanet === "earth" ? Qt.resolvedUrl("assets/textures/earth_8k_opt.jpg") : (state.activePlanet === "moon" ? Qt.resolvedUrl("assets/textures/8k_moon.jpg") : Qt.resolvedUrl("assets/textures/2k_" + state.activePlanet + ".jpg")); mipmap: true; visible: false }
-        ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat; textureSize: Qt.size(earthImg.implicitWidth, earthImg.implicitHeight) }
-        
-        Image { id: nightTexSrc; asynchronous: true; sourceSize: Qt.size(shell.primaryPhysicalWidth * 2, shell.primaryPhysicalHeight * 2); source: Qt.resolvedUrl("assets/textures/night_8k.jpg"); mipmap: true; visible: false }
-        
-        Image { id: bumpTexSrc; asynchronous: true; sourceSize: Qt.size(shell.primaryPhysicalWidth * 2, shell.primaryPhysicalHeight * 2); source: Qt.resolvedUrl("assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
-        
-        Image { id: waterTexSrc; asynchronous: true; sourceSize: Qt.size(shell.primaryPhysicalWidth * 2, shell.primaryPhysicalHeight * 2); source: Qt.resolvedUrl("assets/textures/water_8k.png"); mipmap: true; visible: false }
-        
-        Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
-
-        Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
-        ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat; textureSize: Qt.size(moonImg.implicitWidth, moonImg.implicitHeight) }
-        
-        Image { id: saturnRingTexSrc; asynchronous: true; sourceSize: Qt.size(shell.primaryPhysicalWidth, shell.primaryPhysicalHeight); source: Qt.resolvedUrl("assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
-    }
-
     // ── Local SQLite Tile Server ─────────────────────────
     Process {
         id: tileServerProc
@@ -356,7 +322,6 @@ ShellRoot {
             primaryScreenHeight: shell.primaryHeight
             primaryPhysicalWidth: shell.primaryPhysicalWidth
             primaryPhysicalHeight: shell.primaryPhysicalHeight
-            globalTextures: globalTextures
         }
     }
 }
