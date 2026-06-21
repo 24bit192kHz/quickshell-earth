@@ -298,7 +298,25 @@ PanelWindow {
     property real patchMinV: 0.0
     property real patchMaxV: 0.0
 
-    // ── Removed Python HTTP patch images ────────────────
+    VirtualPatch {
+        id: virtualPatch
+        minU: root.patchMinU
+        maxU: root.patchMaxU
+        minV: root.patchMinV
+        maxV: root.patchMaxV
+        tileServerUrl: root.solarState.tileServerUrl
+    }
+
+    onCameraTiltChanged: updatePatchBounds()
+    onWidthChanged: updatePatchBounds()
+    onHeightChanged: updatePatchBounds()
+    onVEarthSizeChanged: updatePatchBounds()
+    
+    Connections {
+        target: root.solarState
+        function onUserOffsetAngleChanged() { root.updatePatchBounds() }
+        function onUserLonRadChanged() { root.updatePatchBounds() }
+    }
 
     function updatePatchBounds() {
         if (!root.solarState) return;

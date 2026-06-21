@@ -138,6 +138,7 @@ Item {
                 source: root.tileServerUrl !== "" ? 
                         (root.tileServerUrl + "/" + model.zLevel + "/" + model.tx + "/" + model.ty) : ""
                 asynchronous: true
+                cache: false // CRITICAL: Prevent Qt from permanently caching every tile we pan over
                 fillMode: Image.Stretch
                 opacity: status === Image.Ready ? 1.0 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
@@ -150,6 +151,9 @@ Item {
         sourceItem: patchContainer
         hideSource: true
         live: true
+        // CRITICAL FIX: Statically allocating the FBO prevents the continuous 
+        // destroy/recreate cycle during zooming that causes massive VRAM leaks.
+        textureSize: Qt.size(2048, 2048)
     }
 
     property var textureProvider: patchSource
