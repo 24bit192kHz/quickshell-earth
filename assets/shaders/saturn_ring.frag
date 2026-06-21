@@ -106,11 +106,21 @@ void main() {
         }
     }
     
-    // Realistic illumination: rings are bright on the sunlit side, and dark (backlit) on the opposite side.
+    // Realistic illumination: rings are bright on the sunlit side, and scatter light on the backlit side.
     float viewDirY = sign(sinT);
-    float directLight = max(sunVec.y * viewDirY, 0.0);
-    // Add a tiny bit of backlight so we can still see the rings from the dark side, but dimly.
-    float illumination = directLight + 0.08; 
+    float lightSide = sunVec.y * viewDirY;
+    
+    float illumination = 0.0;
+    if (lightSide > 0.0) {
+        // Front-lit: sun is on the same side as the camera
+        illumination = lightSide + 0.05;
+    } else {
+        // Back-lit: sun is on the opposite side.
+        // Ice particles scatter light forward! Dense rings (high alpha) block light and look dark.
+        // Sparse rings (low alpha) let light through and glow.
+        float scattering = pow(1.0 - texColor.a, 2.0) * 1.5;
+        illumination = abs(lightSide) * scattering + 0.05;
+    }
     
     texColor.rgb *= shadow * illumination * 2.5; // Boost brightness slightly
     
