@@ -56,27 +56,6 @@ float noise(vec2 p) {
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-// Perfect sub-pixel mathematical blending to emulate GL_REPEAT 
-// purely in GLSL without creating blurry smudges or requiring FBOs.
-vec4 sampleWrapped(sampler2D tex, vec2 uv, vec2 dx, vec2 dy) {
-    vec4 color = textureGrad(tex, uv, dx, dy);
-    
-    vec2 texSize = vec2(textureSize(tex, 0));
-    float texPixelWidth = 1.0 / texSize.x;
-    float screenPixelWidth = abs(dx.x);
-    float blendRadius = max(texPixelWidth, screenPixelWidth) * 0.75;
-    
-    float seamDist = min(uv.x, 1.0 - uv.x);
-    
-    if (seamDist < blendRadius) {
-        vec2 oppositeUV = vec2(uv.x > 0.5 ? uv.x - 1.0 : uv.x + 1.0, uv.y);
-        vec4 oppositeColor = textureGrad(tex, oppositeUV, dx, dy);
-        float mixFactor = 0.5 - (seamDist / (2.0 * blendRadius));
-        color = mix(color, oppositeColor, max(mixFactor, 0.0));
-    }
-    return color;
-}
-
 void main() {
     float x = coord.x * 2.0 - 1.0;
     float y = 1.0 - coord.y * 2.0;
@@ -144,7 +123,7 @@ void main() {
     float nDotL = dot(earthNorm, sunVec);
     
     // ── Base Color ──
-    vec3 earthColor = sampleWrapped(earthTex, earthUV, dx, dy).rgb;
+    vec3 earthColor = textureGrad(earthTex, earthUV, dx, dy).rgb;
     
     float patchBlendFactor = 0.0;
     float patchU = earthUV.x;
@@ -183,8 +162,8 @@ void main() {
     }
     
     // ── Surface Data ──
-    float waterMask = isEarth > 0.5 ? sampleWrapped(waterTex, earthUV, dx, dy).r : 0.0;
-    float bump = isEarth > 0.5 ? sampleWrapped(bumpTex, earthUV, dx, dy).r : 0.0;
+    float waterMask = isEarth > 0.5 ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
+    float bump = isEarth > 0.5 ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
     
 
     
@@ -196,8 +175,8 @@ void main() {
     duUV.x = fract_safe(duUV.x);
     vec2 dvUV = earthUV + vec2(0.0, texel.y);
     
-    float bumpDu = isEarth > 0.5 ? sampleWrapped(bumpTex, duUV, dx, dy).r : 0.0;
-    float bumpDv = isEarth > 0.5 ? sampleWrapped(bumpTex, dvUV, dx, dy).r : 0.0;
+    float bumpDu = isEarth > 0.5 ? textureGrad(bumpTex, duUV, dx, dy).r : 0.0;
+    float bumpDv = isEarth > 0.5 ? textureGrad(bumpTex, dvUV, dx, dy).r : 0.0;
     
 
     
@@ -293,7 +272,7 @@ void main() {
     vec3 nightColor = vec3(0.0);
     
     if (isEarth > 0.5) {
-        nightColor = sampleWrapped(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
+        nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
         
 
         
@@ -338,14 +317,13 @@ void main() {
         (flowY - 0.875) * 0.005
     );
     
-    vec2 warpedCloudUV = vec2(fract_safe(cloudUV.x + cloudWarp.x), cloudUV.y + cloudWarp.y);
-    float cloudSample = sampleWrapped(cloudTex, warpedCloudUV, c_dx, c_dy).r;
+    vec2 warpedCloudUV = cloudUV + cloudWarp;
+    float cloudSample = textureGrad(cloudTex, warpedCloudUV, c_dx, c_dy).r;
     float cloudAlpha = (cloudSample * 0.9) * cloudOpacity;
     
     // Cloud shadow — reuse the same sample with an offset instead of a second texture read
     vec2 shadowOffset = -sunVec.xy * 0.01;
-    vec2 shadowUV = vec2(fract_safe(warpedCloudUV.x + shadowOffset.x), warpedCloudUV.y + shadowOffset.y);
-    float cloudShadowAlpha = sampleWrapped(cloudTex, shadowUV, c_dx, c_dy).r * 0.9;
+    float cloudShadowAlpha = textureGrad(cloudTex, warpedCloudUV + shadowOffset, c_dx, c_dy).r * 0.9;
     float cloudShadow = 1.0 - (cloudShadowAlpha * smoothstep(0.0, 0.2, nDotL) * 0.4);
     
     color *= cloudShadow;

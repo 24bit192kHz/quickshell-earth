@@ -52,27 +52,6 @@ float noise(vec2 p) {
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-// Perfect sub-pixel mathematical blending to emulate GL_REPEAT 
-// purely in GLSL without creating blurry smudges or requiring FBOs.
-vec4 sampleWrapped(sampler2D tex, vec2 uv, vec2 dx, vec2 dy) {
-    vec4 color = textureGrad(tex, uv, dx, dy);
-    
-    vec2 texSize = vec2(textureSize(tex, 0));
-    float texPixelWidth = 1.0 / texSize.x;
-    float screenPixelWidth = abs(dx.x);
-    float blendRadius = max(texPixelWidth, screenPixelWidth) * 0.75;
-    
-    float seamDist = min(uv.x, 1.0 - uv.x);
-    
-    if (seamDist < blendRadius) {
-        vec2 oppositeUV = vec2(uv.x > 0.5 ? uv.x - 1.0 : uv.x + 1.0, uv.y);
-        vec4 oppositeColor = textureGrad(tex, oppositeUV, dx, dy);
-        float mixFactor = 0.5 - (seamDist / (2.0 * blendRadius));
-        color = mix(color, oppositeColor, max(mixFactor, 0.0));
-    }
-    return color;
-}
-
 void main() {
     vec2 uv = coord * 2.0 - 1.0;
     float r = length(uv);
@@ -93,7 +72,7 @@ void main() {
     if (abs(dx.x) > 0.5) dx.x -= sign(dx.x);
     if (abs(dy.x) > 0.5) dy.x -= sign(dy.x);
     
-    vec3 earthColor = sampleWrapped(moonTex, moonUV, dx, dy).rgb;
+    vec3 earthColor = textureGrad(moonTex, moonUV, dx, dy).rgb;
 
     // Multi-octave fluid noise (FBM) for realistic atmospheric flow
     float n1 = noise(moonUV * 6.0 + time * 0.01);
@@ -108,10 +87,10 @@ void main() {
         (flowY - 0.875) * 0.005
     );
     
-    vec2 warpedCloudUV = vec2(fract_safe(moonUV.x + cloudWarp.x), moonUV.y + cloudWarp.y);
+    vec2 warpedCloudUV = moonUV + cloudWarp;
 
     // Read Clouds (boosted opacity)
-    float cloudAlpha = min(sampleWrapped(cloudTex, warpedCloudUV, dx, dy).r * 1.8, 1.0);
+    float cloudAlpha = min(textureGrad(cloudTex, warpedCloudUV, dx, dy).r * 1.8, 1.0);
     
     // Dynamic lighting based on the true 3D light vector
     vec3 L = normalize(vec3(lightDirX, lightDirY, lightDirZ));
@@ -132,8 +111,7 @@ void main() {
 
     // Cloud shadow (offset towards the sun)
     vec2 shadowOffset = -vec2(lightDirX, -lightDirY) * 0.005;
-    vec2 shadowUV = vec2(fract_safe(warpedCloudUV.x + shadowOffset.x), warpedCloudUV.y + shadowOffset.y);
-    float cloudShadowAlpha = sampleWrapped(cloudTex, shadowUV, dx, dy).r * 0.9;
+    float cloudShadowAlpha = textureGrad(cloudTex, warpedCloudUV + shadowOffset, dx, dy).r * 0.9;
     float cloudShadow = 1.0 - (cloudShadowAlpha * smoothstep(0.0, 0.1, NdotL) * 0.8);
     
     color *= cloudShadow;

@@ -138,8 +138,8 @@ PanelWindow {
     // Wayland mask removed to allow the full-screen background to render.
     
     // ── Global Background (Dynamic Equirectangular Panorama) ──
-    Image { id: milkyWayTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
-
+    Image { id: milkyWayImg; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
+    ShaderEffectSource { id: milkyWayTexSrc; sourceItem: milkyWayImg; wrapMode: ShaderEffectSource.Repeat }
     ShaderEffect {
         id: bgSphere
         anchors.fill: parent
@@ -277,8 +277,8 @@ PanelWindow {
     // ── Sun depth ────────────────────────────────────────
     // Depth handled by perspective projection above
 
-    // ── Textures ─────────────────────────────────────────
-    Image { id: earthTexSrc; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
+    Image { id: earthImg; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
+    ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat }
     
     Image { id: nightTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
     
@@ -288,7 +288,8 @@ PanelWindow {
     
     Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
 
-    Image { id: moonTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
+    Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
+    ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat }
     
     Image { id: saturnRingTexSrc; asynchronous: true; sourceSize: Qt.size(2048, 2048); source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
 
