@@ -240,10 +240,21 @@ void main() {
             if (t > 0.0) {
                 vec3 pRing = earthNorm + t * sunVec;
                 float rDist = length(pRing);
-                if (rDist > 1.11 && rDist < 2.27) {
-                    // Approximate the ring alpha profile using a procedural gap for the Cassini division
-                    float ringAlpha = 0.8;
-                    if (rDist > 1.95 && rDist < 2.02) ringAlpha = 0.2; // Cassini division
+                if (rDist > 1.24 && rDist < 2.27) {
+                    // Accurate procedural profile of Saturn's rings for shadow casting
+                    float ringAlpha = 0.0;
+                    if (rDist < 1.52) {
+                        ringAlpha = 0.3; // C Ring: mostly transparent, faint shadow
+                    } else if (rDist < 1.95) {
+                        ringAlpha = 0.95; // B Ring: very dense and opaque, dark shadow
+                    } else if (rDist < 2.02) {
+                        ringAlpha = 0.1; // Cassini Division: large gap, almost no shadow
+                    } else {
+                        ringAlpha = 0.65; // A Ring: semi-opaque, moderate shadow
+                    }
+                    
+                    // Add slight softening to the edges of the shadow bands to simulate penumbra
+                    // (Sun's angular diameter from Saturn softens the edges)
                     dayColor *= mix(1.0, 0.1, ringAlpha);
                 }
             }

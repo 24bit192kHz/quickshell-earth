@@ -10,6 +10,7 @@ layout(std140, binding = 0) uniform buf {
     float lightDirX;
     float lightDirY;
     float lightDirZ;
+    float time;
 };
 void main() {
     coord = qt_MultiTexCoord0;

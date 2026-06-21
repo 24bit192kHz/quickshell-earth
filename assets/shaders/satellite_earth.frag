@@ -89,52 +89,49 @@ void main() {
     
     vec2 warpedCloudUV = moonUV + cloudWarp;
 
-    // Read Clouds
-    float cloudAlpha = textureGrad(cloudTex, warpedCloudUV, dx, dy).r;
+    // Read Clouds (boosted opacity)
+    float cloudAlpha = min(textureGrad(cloudTex, warpedCloudUV, dx, dy).r * 1.8, 1.0);
     
     // Dynamic lighting based on the true 3D light vector
     vec3 L = normalize(vec3(lightDirX, lightDirY, lightDirZ));
     float NdotL = dot(N, L);
 
     // Earth atmosphere terminator
-    float diffuse = smoothstep(-0.15, 0.15, NdotL);
+    float diffuse = smoothstep(-0.02, 0.05, NdotL);
 
-    // City lights
-    vec3 nightColor = textureGrad(nightTex, moonUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
-    nightColor *= 2.0;
+    // City lights are invisible from the Moon with human eyes or Apollo cameras
+    vec3 nightColor = vec3(0.0);
 
     // Blend day and night
     vec3 color = mix(nightColor, earthColor, diffuse);
 
-    // Very dark ambient starlight
-    float ambient = 0.015;
+    // Very dark ambient starlight (realistic)
+    float ambient = 0.005;
     color += earthColor * vec3(0.9, 0.95, 1.0) * ambient;
 
     // Cloud shadow (offset towards the sun)
     vec2 shadowOffset = -vec2(lightDirX, -lightDirY) * 0.005;
     float cloudShadowAlpha = textureGrad(cloudTex, warpedCloudUV + shadowOffset, dx, dy).r * 0.9;
-    float cloudShadow = 1.0 - (cloudShadowAlpha * smoothstep(0.0, 0.2, NdotL) * 0.4);
+    float cloudShadow = 1.0 - (cloudShadowAlpha * smoothstep(0.0, 0.1, NdotL) * 0.8);
     
     color *= cloudShadow;
 
     // Dimmer, realistic sunlight
-    vec3 sunColor = vec3(0.85, 0.83, 0.8);
+    vec3 sunColor = vec3(1.0, 1.0, 1.0); // Bright pure sunlight
     
-    // Cloud lighting
+    // Cloud lighting (pure white, highly reflective)
     float cloudLight = max(NdotL, 0.0);
-    vec3 cloudLitColor = mix(vec3(1.0, 0.6, 0.4), vec3(1.0), smoothstep(0.0, 0.3, NdotL));
-    cloudLitColor *= cloudLight;
-    cloudLitColor += vec3(0.1, 0.15, 0.2) * (1.0 - cloudLight);
+    vec3 cloudLitColor = vec3(1.0) * cloudLight;
 
     color = mix(color, cloudLitColor * sunColor, cloudAlpha);
 
     color *= sunColor;
 
-    // Atmospheric rim scatter (very simple)
+    // Atmospheric rim scatter (thin, bright blue rim like Apollo photos)
     float rim = 1.0 - max(dot(N, vec3(0.0, 0.0, 1.0)), 0.0);
-    rim = smoothstep(0.6, 1.0, rim);
+    rim = pow(rim, 4.0); // Thinner edge
     vec3 atmosColor = vec3(0.3, 0.6, 1.0);
-    color += atmosColor * rim * diffuse * 0.5;
+    color += atmosColor * rim * diffuse * 2.0;
 
     // Anti-aliased edge
     float aa = smoothstep(1.0, 0.98, r);

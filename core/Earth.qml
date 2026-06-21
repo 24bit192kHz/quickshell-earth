@@ -93,7 +93,7 @@ PanelWindow {
     // ── 3D Scene Properties ──────────────────────────────
     property real orbitRadius: root.baseSize * 0.9
     property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
-    property real sunDistance: root.baseSize * 6.0  // True distance to the Sun
+    property real sunDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 150.0 : root.baseSize * 6.0  // True distance to the Sun
     property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 44.24 : root.baseSize * 2.0 // True distance to the Moon
 
     property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
@@ -111,7 +111,7 @@ PanelWindow {
     property real sunProjScale: sunInFrontOfCamera ? (root.cameraZ / Math.max(0.001, root.sunDistToCamera)) : 0
 
     property real sunProjX: root.sunX3D * root.sunProjScale
-    property real baseSunSize: root.baseSize * 5.0
+    property real baseSunSize: root.solarState.activePlanet === "moon" ? root.baseSize * 125.0 : root.baseSize * 5.0
     property real vSunSize: root.baseSunSize * root.zoomScale * root.sunProjScale
 
     // ── Viewport Positions ───────────────────────────────
@@ -516,11 +516,15 @@ PanelWindow {
         width: root.vMoonSize; height: root.vMoonSize
         z: root.moonZ3D < 0 ? -1 : 1
 
-        property real angle: -(root.moonRa / (Math.PI * 2))
-        property real tilt: root.solarState.activePlanet === "moon" ? 0.0 : root.userTiltOffset * Math.PI
-        property real lightDirX: root.sunX3D - root.moonX3D
-        property real lightDirY: root.sunY3D - root.moonY3D
-        property real lightDirZ: root.sunZ3D - root.moonZ3D
+        property real angle: root.solarState.activePlanet === "moon" ? -(root.solarState.userLonRad - root.userOffsetAngle) / (Math.PI * 2) : -(root.moonRa / (Math.PI * 2))
+        property real tilt: root.userTiltOffset * Math.PI
+        property real rawLightDirX: root.solarState.activePlanet === "moon" ? 1.0 : root.sunX3D - root.moonX3D
+        property real rawLightDirY: root.solarState.activePlanet === "moon" ? 0.3 : root.sunY3D - root.moonY3D
+        property real rawLightDirZ: root.solarState.activePlanet === "moon" ? 0.5 : root.sunZ3D - root.moonZ3D
+        property real lightDirLen: Math.max(0.001, Math.sqrt(rawLightDirX*rawLightDirX + rawLightDirY*rawLightDirY + rawLightDirZ*rawLightDirZ))
+        property real lightDirX: rawLightDirX / lightDirLen
+        property real lightDirY: rawLightDirY / lightDirLen
+        property real lightDirZ: rawLightDirZ / lightDirLen
 
         property var moonTex: root.solarState.activePlanet === "moon" ? earthOnlyTexSrc : moonTexSrc
         property var cloudTex: cloudTexSrc // Passed only when the shader needs it

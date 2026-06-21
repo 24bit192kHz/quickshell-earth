@@ -101,12 +101,16 @@ void main() {
         float t2 = (-b + sqrt(discriminant)) / 2.0;
         // If either t > 0, the ray hits the planet
         if (t1 > 0.0 || t2 > 0.0) {
-            shadow = 0.05; // deep shadow
+            // Soft shadow edge based on how deep the ray intersects the sphere
+            shadow = mix(0.05, 1.0, smoothstep(0.0, 0.3, discriminant));
         }
     }
     
-    // Add lighting (ring is lit by sun depending on the sun angle)
-    float illumination = max(abs(sunVec.y), 0.05); // Sun illuminates ring depending on its elevation above ring plane
+    // Realistic illumination: rings are bright on the sunlit side, and dark (backlit) on the opposite side.
+    float viewDirY = sign(sinT);
+    float directLight = max(sunVec.y * viewDirY, 0.0);
+    // Add a tiny bit of backlight so we can still see the rings from the dark side, but dimly.
+    float illumination = directLight + 0.08; 
     
     texColor.rgb *= shadow * illumination * 2.5; // Boost brightness slightly
     

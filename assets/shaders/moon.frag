@@ -11,6 +11,7 @@ layout(std140, binding = 0) uniform buf {
     float lightDirX;
     float lightDirY;
     float lightDirZ;
+    float time;
 };
 
 layout(binding = 1) uniform sampler2D moonTex;
@@ -64,9 +65,13 @@ void main() {
     // Moon has no atmosphere, so sharper terminator
     float diffuse = smoothstep(-0.02, 0.15, NdotL);
 
-    // Very dark night side
-    float ambient = 0.01;
+    // Very dark night side, but with a subtle fake rim light to preserve 3D volume
+    float ambient = 0.02;
     float lighting = ambient + (1.0 - ambient) * diffuse;
+    
+    // Fake dark-side rim scatter to stop it from looking like a flat 2D circle
+    float fakeRim = pow(smoothstep(0.6, 1.0, r), 3.0) * 0.04 * (1.0 - diffuse);
+    lighting += fakeRim;
 
     // Dimmer, realistic sunlight (matches Earth)
     vec3 sunColor = vec3(0.85, 0.83, 0.8);
