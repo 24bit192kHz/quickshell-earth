@@ -90,8 +90,7 @@ void main() {
     vec3 eastVec = normalize(vec3(cos(greenwichLocalRa), 0.0, -sinG));
     // Longitude and Latitude
     float pE = dot(earthNorm, eastVec);
-    float pG = dot(earthNorm, greenwichVec);
-    if (abs(pE) < 1e-6 && abs(pG) < 1e-6) pG = 1e-6; // prevent atan(0,0) deadzone at exact poles
+    float pG = dot(earthNorm, greenwichVec) + 1e-8; // prevent atan(0,0) deadzone at exact poles branchlessly
     float absoluteLon = atan(pE, pG);
     float cloudLon = absoluteLon + (utcDaysMod * 0.06 * PI);
     float earthLat = asin(dot(earthNorm, np));

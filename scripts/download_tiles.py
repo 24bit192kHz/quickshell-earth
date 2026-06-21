@@ -60,7 +60,7 @@ def main():
             
         print(f"Downloading Level {z} ({max_x * max_y} tiles)...")
         tasks = []
-        with ThreadPoolExecutor(max_workers=200) as executor:
+        with ThreadPoolExecutor(max_workers=32) as executor:
             for y in range(max_y):
                 for x in range(max_x):
                     tasks.append(executor.submit(download_tile, z, x, y))

@@ -4,35 +4,60 @@ import socket
 import threading
 import subprocess
 import shutil
+import functools
+import queue
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles.db")
 PORT = 49152 # Start checking for open ports in the dynamic range
 
+class ConnectionPool:
+    def __init__(self):
+        self.local = threading.local()
+
+    def get(self):
+        if not os.path.exists(DB_FILE): return None
+        if hasattr(self.local, 'conn'): return self.local.conn
+        
+        conn = sqlite3.connect(f"file:{DB_FILE}?mode=ro", uri=True, check_same_thread=False)
+        conn.execute("PRAGMA mmap_size = 3000000000") # 3GB mmap
+        conn.execute("PRAGMA cache_size = 100") # Minimal heap cache, rely on OS page cache
+        conn.execute("PRAGMA synchronous = OFF")
+        conn.execute("PRAGMA temp_store = MEMORY")
+        self.local.conn = conn
+        return conn
+
+    def put(self, conn):
+        pass
+
+db_pool = ConnectionPool()
+
+def fetch_tile_data(z, x, y):
+    conn = db_pool.get()
+    if not conn: return None
+    try:
+        c = conn.cursor()
+        c.execute('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', (z, x, y))
+        row = c.fetchone()
+        if row and row[0] and len(row[0]) > 0:
+            return row[0]
+        return None
+    finally:
+        db_pool.put(conn)
+
 def find_open_port(start_port):
     for port in range(start_port, 65535):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.bind(('', port))
             s.close()
             return port
         except OSError:
+            s.close()
             continue
     return None
 
 class TileHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        # We need a per-thread or per-request connection if threading is used,
-        # but for simple BaseHTTPRequestHandler, it handles sequentially.
-        self.conn = None
-        if os.path.exists(DB_FILE):
-            self.conn = sqlite3.connect(DB_FILE)
-            self.conn.execute("PRAGMA cache_size = 10000") # Cache 10MB
-            self.conn.execute("PRAGMA synchronous = OFF")
-            self.conn.execute("PRAGMA temp_store = MEMORY")
-            
-        super().__init__(*args, **kwargs)
-
     def do_GET(self):
         # Expected path: /tiles/z/x/y
         parts = self.path.strip('/').split('/')
@@ -40,7 +65,7 @@ class TileHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-            
+
         try:
             z, x, y = int(parts[1]), int(parts[2]), int(parts[3])
         except ValueError:
@@ -48,28 +73,33 @@ class TileHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        if self.conn is None:
-            self.send_response(404)
-            self.end_headers()
-            return
-
-        c = self.conn.cursor()
-        c.execute('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', (z, x, y))
-        row = c.fetchone()
+        data = fetch_tile_data(z, x, y)
         
-        if row and row[0] and len(row[0]) > 0:
-            data = row[0]
+        if data:
+            pass
         else:
             # Auto-heal 0-byte corrupt tiles or missing tiles with a valid 1x1 black JPEG
             # This prevents QML from flooding the console with 404s or "Unsupported image format" errors
             data = bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffdb004300030202020202030202020303030304060404040404080606050609080a0a090809090a0c0f0c0a0b0e0b09090d110d0e0f101011100a0c12131210130f101010ffc0000b080001000101011100ffc40014000100000000000000000000000000000009ffc40014100100000000000000000000000000000000ffda0008010100003f002a9fffd9")
             
-        self.send_response(200)
-        self.send_header('Content-type', 'image/jpeg')
-        self.send_header('Cache-Control', 'max-age=86400')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(data)
+        mime_type = 'image/jpeg'
+        if data.startswith(b'\x89PNG\r\n\x1a\n'):
+            mime_type = 'image/png'
+        elif data.startswith(b'RIFF') and len(data) >= 12 and data[8:12] == b'WEBP':
+            mime_type = 'image/webp'
+        elif data.startswith(b'\xff\xd8'):
+            mime_type = 'image/jpeg'
+
+        header_text = (
+            "HTTP/1.1 200 OK\r\n"
+            f"Content-type: {mime_type}\r\n"
+            "Cache-Control: max-age=86400\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            f"Content-Length: {len(data)}\r\n"
+            "\r\n"
+        ).encode('utf-8')
+        
+        self.wfile.write(header_text + data)
             
     def log_message(self, format, *args):
         # Suppress logging to keep terminal clean
@@ -121,6 +151,11 @@ def background_setup(port):
     # Broadcast URL to QML only when the database is absolutely ready
     print(f"http://127.0.0.1:{port}/tiles", flush=True)
 
+class FastHTTPServer(ThreadingHTTPServer):
+    def server_bind(self):
+        super().server_bind()
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
 def run():
     port = find_open_port(PORT)
     if not port:
@@ -129,7 +164,7 @@ def run():
         
     threading.Thread(target=background_setup, args=(port,), daemon=True).start()
         
-    server = ThreadingHTTPServer(('127.0.0.1', port), TileHandler)
+    server = FastHTTPServer(('127.0.0.1', port), TileHandler)
     server.serve_forever()
 
 if __name__ == '__main__':

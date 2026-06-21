@@ -22,7 +22,7 @@ PanelWindow {
 
         // Star field — 600 random twinkling dots
         Repeater {
-            model: 600
+            model: 300
 
             Rectangle {
                 id: star

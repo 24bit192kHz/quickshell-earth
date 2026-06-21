@@ -62,80 +62,162 @@ PanelWindow {
     property real gmst: root.solarState.gmst
     property real eps: root.solarState.eps
     
-    // Local Apparent Sidereal Time (LAST) at the center of the screen
-    // userOffsetAngle is included so dragging the mouse orbits the camera, changing time-of-day perspective.
-    property real localSiderealTime: gmst + root.solarState.userLonRad - root.userOffsetAngle
-    
-    // Convert Equatorial (RA/Dec) to Local Camera Cartesian
-    // Camera is looking down -Z axis, at RA = localSiderealTime, Dec = 0
-    property real sunLocalRa: sunRa - localSiderealTime
-    property real baseSunX: Math.sin(sunLocalRa) * Math.cos(sunDec) * root.sunDistance
-    property real baseSunY: Math.sin(sunDec) * root.sunDistance
-    // Positive Z so that when sunLocalRa=0 (camera between Sun and Earth), Sun is behind the camera (+Z)
-    property real baseSunZ: Math.cos(sunLocalRa) * Math.cos(sunDec) * root.sunDistance
-    
-    property real moonLocalRa: moonRa - localSiderealTime
-    property real baseMoonX: Math.sin(moonLocalRa) * Math.cos(moonDec) * root.moonDistance
-    property real baseMoonY: Math.sin(moonDec) * root.moonDistance
-    property real baseMoonZ: Math.cos(moonLocalRa) * Math.cos(moonDec) * root.moonDistance
-
-    // ── Camera Projection ──────────────────────────────
-    property real cameraTilt: root.solarState.userTiltOffset + Math.PI / 6.0 // Look down slightly
-
-    // Apply Camera Tilt to Celestial Bodies (10% parallax to match stars)
-    property real tiltParallax: root.solarState.userTiltOffset * 0.1
-    property real tiltCos: Math.cos(tiltParallax)
-    property real tiltSin: Math.sin(tiltParallax)
-
-    property real sunX3D: baseSunX
-    property real sunY3D: baseSunY * tiltCos - baseSunZ * tiltSin
-    property real sunZ3D: baseSunY * tiltSin + baseSunZ * tiltCos
-
-    property real moonX3D: baseMoonX
-    property real moonY3D: baseMoonY * tiltCos - baseMoonZ * tiltSin
-    property real moonZ3D: baseMoonY * tiltSin + baseMoonZ * tiltCos
-
-
-    // ── True 3D Scene Properties (Physical Camera Translation) ──
+    // Batch Astro Math Variables to avoid GC in 60fps property bindings
+    property real localSiderealTime: 0
+    property real sunLocalRa: 0
+    property real baseSunX: 0
+    property real baseSunY: 0
+    property real baseSunZ: 0
+    property real moonLocalRa: 0
+    property real baseMoonX: 0
+    property real baseMoonY: 0
+    property real baseMoonZ: 0
+    property real cameraTilt: 0
+    property real tiltParallax: 0
+    property real tiltCos: 1
+    property real tiltSin: 0
+    property real sunX3D: 0
+    property real sunY3D: 0
+    property real sunZ3D: 0
+    property real moonX3D: 0
+    property real moonY3D: 0
+    property real moonZ3D: 0
     property real orbitRadius: root.baseSize * 0.9
     property real baseCameraZ: root.baseSize * 3.0
-    // As the user zooms, we physically move the camera forward along the Z axis instead of magnifying the lens
-    property real currentCameraZ: baseCameraZ / Math.max(0.0001, root.zoomScale)
-    
+    property real currentCameraZ: baseCameraZ
     property real sunDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 150.0 : root.baseSize * 6.0
     property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 44.24 : root.baseSize * 2.0
-
-    // ── Moon Projection ──────────────────────────────────
-    property bool moonInFrontOfCamera: root.moonZ3D < root.currentCameraZ
-    property real moonDistToCamera: root.currentCameraZ - root.moonZ3D
-    property real moonProjScale: moonInFrontOfCamera ? (baseCameraZ / Math.max(0.001, moonDistToCamera)) : 0
-
-    property real moonProjX: root.moonX3D * moonProjScale
+    property bool moonInFrontOfCamera: false
+    property real moonDistToCamera: 1
+    property real moonProjScale: 0
+    property real moonProjX: 0
     property real baseMoonSize: root.solarState.activePlanet === "moon" ? root.baseSize * 3.667 : root.baseSize * 0.27
-    property real vMoonSize: baseMoonSize * moonProjScale
-    
-    // ── Sun Projection ───────────────────────────────────
-    property bool sunInFrontOfCamera: root.sunZ3D < root.currentCameraZ
-    property real sunDistToCamera: root.currentCameraZ - root.sunZ3D
-    property real sunProjScale: sunInFrontOfCamera ? (baseCameraZ / Math.max(0.001, sunDistToCamera)) : 0
-
-    property real sunProjX: root.sunX3D * sunProjScale
+    property real vMoonSize: 0
+    property bool sunInFrontOfCamera: false
+    property real sunDistToCamera: 1
+    property real sunProjScale: 0
+    property real sunProjX: 0
     property real baseSunSize: root.solarState.activePlanet === "moon" ? root.baseSize * 125.0 : root.baseSize * 5.0
-    property real vSunSize: baseSunSize * sunProjScale
+    property real vSunSize: 0
+    property real earthProjScale: 1
+    property real vEarthSize: 0
+    property real vEarthX: 0
+    property real vEarthY: 0
+    property real vMoonX: 0
+    property real vMoonY: 0
+    property real vSunX: 0
+    property real vSunY: 0
 
-    // ── Viewport Positions ───────────────────────────────
-    // Earth is at Z=0, so its distance to camera is exactly currentCameraZ
-    property real earthProjScale: baseCameraZ / root.currentCameraZ
-    property real vEarthSize: root.baseSize * earthProjScale
+    function updateAstroMath() {
+        let _lst = root.gmst + root.solarState.userLonRad - root.userOffsetAngle;
+        root.localSiderealTime = _lst;
+
+        let _sunRa = root.sunRa;
+        let _sunDec = root.sunDec;
+        let _moonRa = root.moonRa;
+        let _moonDec = root.moonDec;
+        let _sunDist = root.sunDistance;
+        let _moonDist = root.moonDistance;
+
+        let _sunLocalRa = _sunRa - _lst;
+        root.sunLocalRa = _sunLocalRa;
+        let _cosSunDec = Math.cos(_sunDec);
+        let _sinSunDec = Math.sin(_sunDec);
+        let _bsx = Math.sin(_sunLocalRa) * _cosSunDec * _sunDist;
+        let _bsy = _sinSunDec * _sunDist;
+        let _bsz = Math.cos(_sunLocalRa) * _cosSunDec * _sunDist;
+        root.baseSunX = _bsx;
+        root.baseSunY = _bsy;
+        root.baseSunZ = _bsz;
+
+        let _moonLocalRa = _moonRa - _lst;
+        root.moonLocalRa = _moonLocalRa;
+        let _cosMoonDec = Math.cos(_moonDec);
+        let _sinMoonDec = Math.sin(_moonDec);
+        let _bmx = Math.sin(_moonLocalRa) * _cosMoonDec * _moonDist;
+        let _bmy = _sinMoonDec * _moonDist;
+        let _bmz = Math.cos(_moonLocalRa) * _cosMoonDec * _moonDist;
+        root.baseMoonX = _bmx;
+        root.baseMoonY = _bmy;
+        root.baseMoonZ = _bmz;
+
+        let _tiltOffset = root.solarState.userTiltOffset;
+        root.cameraTilt = _tiltOffset + Math.PI / 6.0;
+        let _tiltParallax = _tiltOffset * 0.1;
+        root.tiltParallax = _tiltParallax;
+        let _tiltCos = Math.cos(_tiltParallax);
+        let _tiltSin = Math.sin(_tiltParallax);
+        root.tiltCos = _tiltCos;
+        root.tiltSin = _tiltSin;
+
+        let _sunY3D = _bsy * _tiltCos - _bsz * _tiltSin;
+        let _sunZ3D = _bsy * _tiltSin + _bsz * _tiltCos;
+        root.sunX3D = _bsx;
+        root.sunY3D = _sunY3D;
+        root.sunZ3D = _sunZ3D;
+
+        let _moonY3D = _bmy * _tiltCos - _bmz * _tiltSin;
+        let _moonZ3D = _bmy * _tiltSin + _bmz * _tiltCos;
+        root.moonX3D = _bmx;
+        root.moonY3D = _moonY3D;
+        root.moonZ3D = _moonZ3D;
+
+        let _camZ = root.baseCameraZ / Math.max(0.0001, root.zoomScale);
+        root.currentCameraZ = _camZ;
+
+        let _mFront = _moonZ3D < _camZ;
+        root.moonInFrontOfCamera = _mFront;
+        let _mDist = _camZ - _moonZ3D;
+        root.moonDistToCamera = _mDist;
+        let _mScale = _mFront ? (root.baseCameraZ / Math.max(0.001, _mDist)) : 0;
+        root.moonProjScale = _mScale;
+        let _mProjX = _bmx * _mScale;
+        root.moonProjX = _mProjX;
+        let _vMSz = root.baseMoonSize * _mScale;
+        root.vMoonSize = _vMSz;
+
+        let _sFront = _sunZ3D < _camZ;
+        root.sunInFrontOfCamera = _sFront;
+        let _sDist = _camZ - _sunZ3D;
+        root.sunDistToCamera = _sDist;
+        let _sScale = _sFront ? (root.baseCameraZ / Math.max(0.001, _sDist)) : 0;
+        root.sunProjScale = _sScale;
+        let _sProjX = _bsx * _sScale;
+        root.sunProjX = _sProjX;
+        let _vSSz = root.baseSunSize * _sScale;
+        root.vSunSize = _vSSz;
+
+        let _eScale = root.baseCameraZ / _camZ;
+        root.earthProjScale = _eScale;
+        let _vESz = root.baseSize * _eScale;
+        root.vEarthSize = _vESz;
+
+        root.vEarthX = root.toLocalX(-_vESz / 2);
+        root.vEarthY = root.toLocalY(-_vESz / 2);
+
+        root.vMoonX = root.toLocalX(_mProjX - _vMSz / 2);
+        root.vMoonY = root.toLocalY(-_moonY3D * _mScale - _vMSz / 2);
+
+        root.vSunX = root.toLocalX(_sProjX - _vSSz / 2);
+        root.vSunY = root.toLocalY(-_sunY3D * _sScale - _vSSz / 2 + root.baseSize * 0.16 * _sScale);
+    }
+
+    Connections {
+        target: root
+        function onUserOffsetAngleChanged() { root.updateAstroMath() }
+        function onUserTiltOffsetChanged() { root.updateAstroMath() }
+        function onZoomScaleChanged() { root.updateAstroMath() }
+        function onSunRaChanged() { root.updateAstroMath() }
+        function onSunDecChanged() { root.updateAstroMath() }
+        function onMoonRaChanged() { root.updateAstroMath() }
+        function onMoonDecChanged() { root.updateAstroMath() }
+        function onGmstChanged() { root.updateAstroMath() }
+        function onBaseSizeChanged() { root.updateAstroMath() }
+    }
     
-    property real vEarthX: toLocalX(-vEarthSize / 2)
-    property real vEarthY: toLocalY(-vEarthSize / 2)
-
-    property real vMoonX: toLocalX(moonProjX - vMoonSize / 2)
-    property real vMoonY: toLocalY(-root.moonY3D * moonProjScale - vMoonSize / 2)
-
-    property real vSunX: toLocalX(sunProjX - vSunSize / 2)
-    property real vSunY: toLocalY(-root.sunY3D * sunProjScale - vSunSize / 2 + root.baseSize * 0.16 * sunProjScale)
+    Component.onCompleted: {
+        updateAstroMath()
+    }
 
     // Wayland mask removed to allow the full-screen background to render.
     
@@ -278,23 +360,24 @@ PanelWindow {
     // Depth handled by perspective projection above
 
     // ── Textures ─────────────────────────────────────────
-    Image { id: milkyWayImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
+    Image { id: milkyWayImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
 
-    Image { id: earthImg; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
-    ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat; textureSize: Qt.size(earthImg.implicitWidth, earthImg.implicitHeight) }
+    Image { id: earthImg; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    Image { id: satelliteEarthImg; asynchronous: true; source: root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : ""; sourceSize: Qt.size(2048, 2048); mipmap: true; visible: false }
     
-    Image { id: nightTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
     
-    Image { id: bumpTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
+    Image { id: nightTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
-    Image { id: waterTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); mipmap: true; visible: false }
+    Image { id: bumpTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
-    Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
+    Image { id: waterTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    
+    Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
 
-    Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
-    ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat; textureSize: Qt.size(moonImg.implicitWidth, moonImg.implicitHeight) }
+    Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
-    Image { id: saturnRingTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
+    
+    Image { id: saturnRingTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
     property real patchMinU: 0.0
@@ -481,8 +564,8 @@ PanelWindow {
         property real userOffsetAngle: root.userOffsetAngle
 
         // Core Textures
-        property variant earthTex: earthTexSrc
-        property variant moonTex: moonTexSrc
+        property variant earthTex: earthImg
+        property variant moonTex: moonImg
         
         // Auxiliary Data
         property variant nightTex: nightTexSrc
@@ -558,7 +641,7 @@ PanelWindow {
         property real lightDirY: rawLightDirY / lightDirLen
         property real lightDirZ: rawLightDirZ / lightDirLen
 
-        property var moonTex: root.solarState.activePlanet === "moon" ? earthTexSrc : moonTexSrc
+        property var moonTex: root.solarState.activePlanet === "moon" ? satelliteEarthImg : moonImg
         property var cloudTex: cloudTexSrc // Passed only when the shader needs it
         property var nightTex: nightTexSrc
         property real time: root.solarState.timeSec
