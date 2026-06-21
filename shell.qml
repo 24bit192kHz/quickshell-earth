@@ -12,6 +12,8 @@ ShellRoot {
     property real primaryCenterX: 960
     property real primaryCenterY: 540
     property real primaryHeight: 1080
+    property real primaryPhysicalWidth: 1920
+    property real primaryPhysicalHeight: 1080
 
     Process {
         id: hyprProc
@@ -38,7 +40,14 @@ ShellRoot {
                     if (m.transform % 2 === 1) {
                         let tmp = lw; lw = lh; lh = tmp
                     }
-                    layout[m.name] = { x: m.x, y: m.y, width: lw, height: lh }
+                    layout[m.name] = { 
+                        x: m.x, 
+                        y: m.y, 
+                        width: lw, 
+                        height: lh,
+                        physicalWidth: m.width,
+                        physicalHeight: m.height
+                    }
                     if (m.focused) primaryName = m.name
                 }
 
@@ -52,6 +61,8 @@ ShellRoot {
                     shell.primaryCenterX = p.x + p.width / 2.0
                     shell.primaryCenterY = p.y + p.height / 2.0
                     shell.primaryHeight = p.height
+                    shell.primaryPhysicalWidth = p.physicalWidth
+                    shell.primaryPhysicalHeight = p.physicalHeight
                 }
             } catch(e) {
                 console.error("Failed to parse hyprctl:", e)
@@ -309,6 +320,8 @@ ShellRoot {
             sceneCenterX: shell.primaryCenterX
             sceneCenterY: shell.primaryCenterY
             primaryScreenHeight: shell.primaryHeight
+            primaryPhysicalWidth: shell.primaryPhysicalWidth
+            primaryPhysicalHeight: shell.primaryPhysicalHeight
         }
     }
 }
