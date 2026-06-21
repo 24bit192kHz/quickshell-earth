@@ -1,0 +1,3 @@
+- Ported property-binding-cascade mathematics to a single batched `updateAstroMath()` function in Earth.qml to avoid triggering JS VM garbage collection 60 times a second.
+- Retained functional UI mapping (visual positioning of celestial bodies).
+- Replaced the continuous Math.sin/Math.cos bindings with statically assigned variables that only execute together in a single context.
