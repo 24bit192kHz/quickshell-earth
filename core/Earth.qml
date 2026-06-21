@@ -94,40 +94,46 @@ PanelWindow {
     property real moonZ3D: baseMoonY * tiltSin + baseMoonZ * tiltCos
 
 
-    // ── 3D Scene Properties ──────────────────────────────
+    // ── True 3D Scene Properties (Physical Camera Translation) ──
     property real orbitRadius: root.baseSize * 0.9
-    property real cameraZ: root.baseSize * 3.0      // Camera distance from Earth
-    property real sunDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 150.0 : root.baseSize * 6.0  // True distance to the Sun
-    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 44.24 : root.baseSize * 2.0 // True distance to the Moon
-
-    property bool moonInFrontOfCamera: root.moonZ3D < root.cameraZ
-    property real moonDistToCamera: root.cameraZ - root.moonZ3D
-    property real moonProjScale: moonInFrontOfCamera ? (root.cameraZ / Math.max(0.001, root.moonDistToCamera)) : 0
-
-    property real moonProjX: root.moonX3D * root.moonProjScale
-    property real baseMoonSize: root.solarState.activePlanet === "moon" ? root.baseSize * 3.667 : root.baseSize * 0.27
-    property real vMoonSize: root.baseMoonSize * root.zoomScale * root.moonProjScale
-
+    property real baseCameraZ: root.baseSize * 3.0
+    // As the user zooms, we physically move the camera forward along the Z axis instead of magnifying the lens
+    property real currentCameraZ: baseCameraZ / Math.max(0.0001, root.zoomScale)
     
+    property real sunDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 150.0 : root.baseSize * 6.0
+    property real moonDistance: root.solarState.activePlanet === "moon" ? root.baseSize * 44.24 : root.baseSize * 2.0
 
-    property bool sunInFrontOfCamera: root.sunZ3D < root.cameraZ
-    property real sunDistToCamera: root.cameraZ - root.sunZ3D
-    property real sunProjScale: sunInFrontOfCamera ? (root.cameraZ / Math.max(0.001, root.sunDistToCamera)) : 0
+    // ── Moon Projection ──────────────────────────────────
+    property bool moonInFrontOfCamera: root.moonZ3D < root.currentCameraZ
+    property real moonDistToCamera: root.currentCameraZ - root.moonZ3D
+    property real moonProjScale: moonInFrontOfCamera ? (baseCameraZ / Math.max(0.001, moonDistToCamera)) : 0
 
-    property real sunProjX: root.sunX3D * root.sunProjScale
+    property real moonProjX: root.moonX3D * moonProjScale
+    property real baseMoonSize: root.solarState.activePlanet === "moon" ? root.baseSize * 3.667 : root.baseSize * 0.27
+    property real vMoonSize: baseMoonSize * moonProjScale
+    
+    // ── Sun Projection ───────────────────────────────────
+    property bool sunInFrontOfCamera: root.sunZ3D < root.currentCameraZ
+    property real sunDistToCamera: root.currentCameraZ - root.sunZ3D
+    property real sunProjScale: sunInFrontOfCamera ? (baseCameraZ / Math.max(0.001, sunDistToCamera)) : 0
+
+    property real sunProjX: root.sunX3D * sunProjScale
     property real baseSunSize: root.solarState.activePlanet === "moon" ? root.baseSize * 125.0 : root.baseSize * 5.0
-    property real vSunSize: root.baseSunSize * root.zoomScale * root.sunProjScale
+    property real vSunSize: baseSunSize * sunProjScale
 
     // ── Viewport Positions ───────────────────────────────
-    property real vEarthSize: root.baseSize * root.zoomScale
-    property real vEarthX: toLocalX(-root.vEarthSize / 2)
-    property real vEarthY: toLocalY(-root.vEarthSize / 2)
+    // Earth is at Z=0, so its distance to camera is exactly currentCameraZ
+    property real earthProjScale: baseCameraZ / root.currentCameraZ
+    property real vEarthSize: root.baseSize * earthProjScale
+    
+    property real vEarthX: toLocalX(-vEarthSize / 2)
+    property real vEarthY: toLocalY(-vEarthSize / 2)
 
-    property real vMoonX: toLocalX(root.moonProjX * root.zoomScale - root.vMoonSize / 2)
-    property real vMoonY: toLocalY(-root.moonY3D * root.zoomScale * root.moonProjScale - root.vMoonSize / 2)
+    property real vMoonX: toLocalX(moonProjX - vMoonSize / 2)
+    property real vMoonY: toLocalY(-root.moonY3D * moonProjScale - vMoonSize / 2)
 
-    property real vSunX: toLocalX(root.sunProjX * root.zoomScale - root.vSunSize / 2)
-    property real vSunY: toLocalY(-root.sunY3D * root.zoomScale * root.sunProjScale - root.vSunSize / 2 + root.baseSize * 0.16 * root.zoomScale * root.sunProjScale)
+    property real vSunX: toLocalX(sunProjX - vSunSize / 2)
+    property real vSunY: toLocalY(-root.sunY3D * sunProjScale - vSunSize / 2 + root.baseSize * 0.16 * sunProjScale)
 
     // Wayland mask removed to allow the full-screen background to render.
     
@@ -399,7 +405,7 @@ PanelWindow {
         
         opacity: {
             if (!root.sunInFrontOfCamera) return 0.0;
-            let fadeDist = root.cameraZ * 0.3;
+            let fadeDist = root.baseCameraZ * 0.3;
             if (root.sunDistToCamera < fadeDist) {
                 return Math.max(0.0, root.sunDistToCamera / fadeDist);
             }
@@ -527,7 +533,15 @@ PanelWindow {
     ShaderEffect {
         id: satelliteSphere
         
-        visible: root.solarState.activePlanet === "earth" || root.solarState.activePlanet === "moon"
+        opacity: {
+            if (!root.moonInFrontOfCamera) return 0.0;
+            let fadeDist = root.baseCameraZ * 0.1; // Smoothly fade out when camera flies very close to it
+            if (root.moonDistToCamera < fadeDist) {
+                return Math.max(0.0, root.moonDistToCamera / fadeDist);
+            }
+            return 1.0;
+        }
+        visible: (root.solarState.activePlanet === "earth" || root.solarState.activePlanet === "moon") && opacity > 0
         
         x: root.vMoonX; y: root.vMoonY
         width: root.vMoonSize; height: root.vMoonSize
