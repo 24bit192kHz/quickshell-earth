@@ -138,7 +138,7 @@ PanelWindow {
     // Wayland mask removed to allow the full-screen background to render.
     
     // ── Global Background (Dynamic Equirectangular Panorama) ──
-    Image { id: milkyWayTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
+    Image { id: milkyWayTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); mipmap: true; visible: false }
 
     ShaderEffect {
         id: bgSphere
@@ -280,17 +280,17 @@ PanelWindow {
     // ── Textures ─────────────────────────────────────────
     Image { id: earthTexSrc; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
     
-    Image { id: nightTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
+    Image { id: nightTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
     
-    Image { id: bumpTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
+    Image { id: bumpTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
     
-    Image { id: waterTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); mipmap: true; visible: false }
+    Image { id: waterTexSrc; asynchronous: true; sourceSize: Qt.size(4096, 2048); source: Qt.resolvedUrl("../assets/textures/water_8k.png"); mipmap: true; visible: false }
     
     Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
 
     Image { id: moonTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
     
-    Image { id: saturnRingTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
+    Image { id: saturnRingTexSrc; asynchronous: true; sourceSize: Qt.size(2048, 2048); source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
     property real patchMinU: 0.0
@@ -298,25 +298,7 @@ PanelWindow {
     property real patchMinV: 0.0
     property real patchMaxV: 0.0
 
-    VirtualPatch {
-        id: virtualPatch
-        minU: root.patchMinU
-        maxU: root.patchMaxU
-        minV: root.patchMinV
-        maxV: root.patchMaxV
-        tileServerUrl: root.solarState.tileServerUrl
-    }
-
-    onCameraTiltChanged: updatePatchBounds()
-    onWidthChanged: updatePatchBounds()
-    onHeightChanged: updatePatchBounds()
-    onVEarthSizeChanged: updatePatchBounds()
-    
-    Connections {
-        target: root.solarState
-        function onUserOffsetAngleChanged() { root.updatePatchBounds() }
-        function onUserLonRadChanged() { root.updatePatchBounds() }
-    }
+    // ── Removed Python HTTP patch images ────────────────
 
     function updatePatchBounds() {
         if (!root.solarState) return;
