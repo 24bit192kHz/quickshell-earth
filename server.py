@@ -90,16 +90,14 @@ class TileHandler(BaseHTTPRequestHandler):
         elif data.startswith(b'\xff\xd8'):
             mime_type = 'image/jpeg'
 
-        header_text = (
-            "HTTP/1.1 200 OK\r\n"
-            f"Content-type: {mime_type}\r\n"
-            "Cache-Control: max-age=86400\r\n"
-            "Access-Control-Allow-Origin: *\r\n"
-            f"Content-Length: {len(data)}\r\n"
-            "\r\n"
-        ).encode('utf-8')
-        
-        self.wfile.write(header_text + data)
+        self.send_response(200)
+        self.send_header("Content-type", mime_type)
+        self.send_header("Cache-Control", "max-age=86400")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+        self.wfile.write(data)
             
     def log_message(self, format, *args):
         # Suppress logging to keep terminal clean
