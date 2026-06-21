@@ -278,26 +278,19 @@ PanelWindow {
     // Depth handled by perspective projection above
 
     // ── Textures ─────────────────────────────────────────
-    Image { id: earthImg; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
-    ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: earthTexSrc; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
     
-    Image { id: nightImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
-    ShaderEffectSource { id: nightTexSrc; sourceItem: nightImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: nightTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); mipmap: true; visible: false }
     
-    Image { id: bumpImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
-    ShaderEffectSource { id: bumpTexSrc; sourceItem: bumpImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: bumpTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); mipmap: true; visible: false }
     
-    Image { id: waterImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); mipmap: true; visible: false }
-    ShaderEffectSource { id: waterTexSrc; sourceItem: waterImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: waterTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); mipmap: true; visible: false }
     
-    Image { id: cloudImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
-    ShaderEffectSource { id: cloudTexSrc; sourceItem: cloudImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
 
-    Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
-    ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: moonTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
     
-    Image { id: saturnRingImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
-    ShaderEffectSource { id: saturnRingTexSrc; sourceItem: saturnRingImg; wrapMode: ShaderEffectSource.Repeat }
+    Image { id: saturnRingTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
     property real patchMinU: 0.0
@@ -557,7 +550,7 @@ PanelWindow {
         property real lightDirY: rawLightDirY / lightDirLen
         property real lightDirZ: rawLightDirZ / lightDirLen
 
-        property var moonTex: root.solarState.activePlanet === "moon" ? earthOnlyTexSrc : moonTexSrc
+        property var moonTex: root.solarState.activePlanet === "moon" ? earthTexSrc : moonTexSrc
         property var cloudTex: cloudTexSrc // Passed only when the shader needs it
         property var nightTex: nightTexSrc
         property real time: root.solarState.timeSec

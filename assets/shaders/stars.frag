@@ -47,5 +47,11 @@ void main() {
     ray = rotateY(ray, -localSiderealTime * 0.1);
     
     vec2 bgUV = sphereToUV(ray);
-    fragColor = texture(bgTex, bgUV) * qt_Opacity;
+    
+    vec2 dx = dFdx(bgUV);
+    vec2 dy = dFdy(bgUV);
+    if (abs(dx.x) > 0.5) dx.x -= sign(dx.x);
+    if (abs(dy.x) > 0.5) dy.x -= sign(dy.x);
+    
+    fragColor = textureGrad(bgTex, bgUV, dx, dy) * qt_Opacity;
 }
