@@ -25,6 +25,10 @@ PanelWindow {
     implicitWidth: root.screen.width
     implicitHeight: root.screen.height
 
+
+
+
+
     // ── Screen Position (auto-detected from hyprctl) ─────
     property string screenName: root.modelData.name || ""
     property var myMonitor: root.monitorLayout[root.screenName] || null
@@ -268,19 +272,24 @@ PanelWindow {
     // Depth handled by perspective projection above
 
     // ── Textures ─────────────────────────────────────────
-    Image { 
-        id: earthTexSrc; 
-        source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); 
-        mipmap: true; 
-        visible: false 
-    }
-    Image { id: earthOnlyTexSrc; source: Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg"); mipmap: true; visible: false }
-    Image { id: nightTexSrc; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
-    Image { id: bumpTexSrc; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
-    Image { id: waterTexSrc; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
-    Image { id: cloudTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
+    Image { id: earthImg; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); mipmap: true; visible: false }
+    ShaderEffectSource { id: earthTexSrc; sourceItem: earthImg; wrapMode: ShaderEffectSource.Repeat }
+    
+    Image { id: nightImg; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    ShaderEffectSource { id: nightTexSrc; sourceItem: nightImg; wrapMode: ShaderEffectSource.Repeat }
+    
+    Image { id: bumpImg; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    ShaderEffectSource { id: bumpTexSrc; sourceItem: bumpImg; wrapMode: ShaderEffectSource.Repeat }
+    
+    Image { id: waterImg; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
+    ShaderEffectSource { id: waterTexSrc; sourceItem: waterImg; wrapMode: ShaderEffectSource.Repeat }
+    
+    Image { id: cloudImg; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); mipmap: true; visible: false }
+    ShaderEffectSource { id: cloudTexSrc; sourceItem: cloudImg; wrapMode: ShaderEffectSource.Repeat }
 
-    Image { id: moonTexSrc; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
+    Image { id: moonImg; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); mipmap: true; visible: false }
+    ShaderEffectSource { id: moonTexSrc; sourceItem: moonImg; wrapMode: ShaderEffectSource.Repeat }
+    
     Image { id: saturnRingTexSrc; source: Qt.resolvedUrl("../assets/textures/8k_saturn_ring_alpha.png"); mipmap: true; visible: false }
 
     // ── Native Virtual Texturing ─────────────────────────
@@ -417,12 +426,19 @@ PanelWindow {
             if (name === "venus_surface") return "VENUS"
             return name.toUpperCase()
         }
-        color: "#ffffff"
-        font.pixelSize: 72
-        font.weight: 800
-        font.letterSpacing: 32
-        style: Text.Outline
-        styleColor: "#000000"
+        color: "#f4f4f4"
+        font.family: "Futura" // A classic cinematic sci-fi font, will fallback cleanly if missing
+        font.pixelSize: 64
+        font.weight: Font.Thin
+        font.letterSpacing: 48
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: "#cc000000"
+            shadowHorizontalOffset: 0
+            shadowVerticalOffset: 4
+            shadowBlur: 1.0
+        }
         
         anchors.horizontalCenter: earthSphere.horizontalCenter
         y: Math.max(parent.height * 0.15, earthSphere.y - height - 60)

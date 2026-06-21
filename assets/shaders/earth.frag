@@ -88,13 +88,11 @@ void main() {
     float cosG = cos(greenwichLocalRa);
     vec3 greenwichVec = normalize(vec3(sinG, 0.0, cosG));
     vec3 eastVec = normalize(vec3(cos(greenwichLocalRa), 0.0, -sinG));
-    
-    vec3 eqPlane = earthNorm - dot(earthNorm, np) * np;
-    float eqLen = length(eqPlane);
-    eqPlane = eqPlane / max(0.0001, eqLen);
-    
     // Longitude and Latitude
-    float absoluteLon = atan(dot(eqPlane, eastVec), dot(eqPlane, greenwichVec));
+    float pE = dot(earthNorm, eastVec);
+    float pG = dot(earthNorm, greenwichVec);
+    if (abs(pE) < 1e-6 && abs(pG) < 1e-6) pG = 1e-6; // prevent atan(0,0) deadzone at exact poles
+    float absoluteLon = atan(pE, pG);
     float cloudLon = absoluteLon + (utcDaysMod * 0.06 * PI);
     float earthLat = asin(dot(earthNorm, np));
 
@@ -105,10 +103,21 @@ void main() {
     vec2 dx = dFdx(earthUV);
     vec2 dy = dFdy(earthUV);
     if (abs(dx.x) > 0.5) dx.x -= sign(dx.x);
+    if (abs(dy.x) > 0.5) dy.x -= sign(dy.x);
+    
+    // Fix equirectangular pole pinching: strictly limit U-gradient to match V-gradient
+    float max_u_grad = max(length(vec2(dx.y, dy.y)), 0.0001) * 0.5;
+    dx.x = clamp(dx.x, -max_u_grad, max_u_grad);
+    dy.x = clamp(dy.x, -max_u_grad, max_u_grad);
     
     vec2 c_dx = dFdx(cloudUV);
     vec2 c_dy = dFdy(cloudUV);
     if (abs(c_dx.x) > 0.5) c_dx.x -= sign(c_dx.x);
+    if (abs(c_dy.x) > 0.5) c_dy.x -= sign(c_dy.x);
+    
+    float c_max_u_grad = max(length(vec2(c_dx.y, c_dy.y)), 0.0001) * 0.5;
+    c_dx.x = clamp(c_dx.x, -c_max_u_grad, c_max_u_grad);
+    c_dy.x = clamp(c_dy.x, -c_max_u_grad, c_max_u_grad);
 
     // Raw diffuse dot
     float nDotL = dot(earthNorm, sunVec);
@@ -156,18 +165,7 @@ void main() {
     float waterMask = isEarth > 0.5 ? textureGrad(waterTex, earthUV, dx, dy).r : 0.0;
     float bump = isEarth > 0.5 ? textureGrad(bumpTex, earthUV, dx, dy).r : 0.0;
     
-    // ── Seamless Date Line Blending ──
-    // Only runs for the ~0.1% of pixels right at the seam
-    float seamDist = min(earthUV.x, 1.0 - earthUV.x);
-    if (isEarth > 0.5 && seamDist < 0.001) {
-        float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
-        vec2 altUV = vec2(altX, earthUV.y);
-        float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
-        
-        earthColor = mix(textureGrad(earthTex, altUV, dx, dy).rgb, earthColor, seamBlend);
-        bump = mix(textureGrad(bumpTex, altUV, dx, dy).r, bump, seamBlend);
-        waterMask = mix(textureGrad(waterTex, altUV, dx, dy).r, waterMask, seamBlend);
-    }
+
     
     // ── Bump Mapping ──
     float bumpScale = 0.003 * (1.0 - waterMask);
@@ -180,15 +178,7 @@ void main() {
     float bumpDu = isEarth > 0.5 ? textureGrad(bumpTex, duUV, dx, dy).r : 0.0;
     float bumpDv = isEarth > 0.5 ? textureGrad(bumpTex, dvUV, dx, dy).r : 0.0;
     
-    if (isEarth > 0.5 && seamDist < 0.001) {
-        float altXdu = duUV.x < 0.5 ? 1.0 : 0.0;
-        float blendDu = 0.5 + 0.5 * (min(duUV.x, 1.0 - duUV.x) / 0.001);
-        bumpDu = mix(textureGrad(bumpTex, vec2(altXdu, duUV.y), dx, dy).r, bumpDu, blendDu);
-        
-        float altXdv = dvUV.x < 0.5 ? 1.0 : 0.0;
-        float blendDv = 0.5 + 0.5 * (min(dvUV.x, 1.0 - dvUV.x) / 0.001);
-        bumpDv = mix(textureGrad(bumpTex, vec2(altXdv, dvUV.y), dx, dy).r, bumpDv, blendDv);
-    }
+
     
     float dbDu = (bumpDu - bump) / texel.x;
     float dbDv = (bumpDv - bump) / texel.y;
@@ -284,12 +274,7 @@ void main() {
     if (isEarth > 0.5) {
         nightColor = textureGrad(nightTex, earthUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7);
         
-        if (seamDist < 0.001) {
-            float altX = earthUV.x < 0.5 ? 1.0 : 0.0;
-            vec2 altUV = vec2(altX, earthUV.y);
-            float seamBlend = 0.5 + 0.5 * (seamDist / 0.001);
-            nightColor = mix(textureGrad(nightTex, altUV, dx, dy).rgb * vec3(1.0, 0.9, 0.7), nightColor, seamBlend);
-        }
+
         
         // Procedurally sharpen the blurry 8K night lights using the 128K daytime texture!
         // Cities are concrete/asphalt (high luma) while nature/ocean is dark (low luma).

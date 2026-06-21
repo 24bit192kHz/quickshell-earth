@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Font Tester - Solar System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Alexandria&family=Almarai&family=Amiri&family=Amiri+Quran&family=Anek+Arabic&family=Aref+Ruqaa&family=Aref+Ruqaa+Ink&family=Baloo+Bhaijaan+2&family=Blaka&family=Blaka+Hollow&family=Blaka+Ink&family=Cairo&family=Changa&family=El+Messiri&family=Gulzar&family=Harmattan&family=IBM+Plex+Sans+Arabic&family=Jomhuria&family=Katibeh&family=Kufam&family=Lalezar&family=Lateef&family=Lemonada&family=Mada&family=Marhey&family=Markazi+Text&family=Mirza&family=Noto+Kufi+Arabic&family=Noto+Naskh+Arabic&family=Noto+Nastaliq+Urdu&family=Noto+Sans+Arabic&family=Qahiri&family=Rakkas&family=Readex+Pro&family=Reem+Kufi&family=Reem+Kufi+Fun&family=Rubik+Arabic&family=Ruwudu&family=Scheherazade+New&family=Tajawal&family=Vazirmatn&family=Vibes&family=Zain&display=swap');
+        
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #4da8da;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .font-card {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .font-name {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 15px;
+            font-family: monospace;
+            text-align: left;
+            direction: ltr;
+        }
+        .sample-text {
+            font-size: 36px;
+            line-height: 1.5;
+            word-spacing: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Arabic Font Tester</h1>
+    <div class="container" id="font-container"></div>
+
+    <script>
+        const planets = "الأرض القمر عطارد الزهرة المريخ المشتري زحل أورانوس نبتون";
+        
+        const testFonts = [
+            // Google Fonts - Modern & UI
+            "Cairo", "Tajawal", "Almarai", "Noto Sans Arabic", "IBM Plex Sans Arabic",
+            "Vazirmatn", "Readex Pro", "Mada", "Alexandria", "Rubik Arabic",
+            "Anek Arabic", "Zain", "Gulzar", "Baloo Bhaijaan 2",
+
+            // Google Fonts - Display & Heavy
+            "Changa", "Lalezar", "Kufam", "Blaka", "Blaka Hollow",
+            "Blaka Ink", "Marhey", "Katibeh", "Jomhuria", "Mirza",
+
+            // Google Fonts - Kufic & Geometric
+            "Noto Kufi Arabic", "Reem Kufi", "Reem Kufi Fun", "El Messiri", "Markazi Text",
+            "Lemonada", "Rakkas", "Vibes", "Qahiri", "Ruwudu",
+
+            // Google Fonts - Traditional & Calligraphic
+            "Amiri", "Amiri Quran", "Aref Ruqaa", "Aref Ruqaa Ink", "Scheherazade New",
+            "Harmattan", "Lateef", "Noto Naskh Arabic", "Noto Nastaliq Urdu",
+
+            // Standard Windows Arabic Fonts
+            "Tahoma", "Arial", "Times New Roman", "Segoe UI", "Calibri",
+            "Traditional Arabic", "Simplified Arabic", "Sakkal Majalla", "Arabic Typesetting", "Andalus",
+            "Aldhabi", "Urdu Typesetting", "Dubai", "Microsoft Sans Serif", "Courier New",
+
+            // Mac/Apple Arabic Fonts
+            "Geeza Pro", "Damascus", "DecoType Naskh", "Diwan Kufi", "Diwan Thuluth",
+            "Farah", "Mishafi", "Muna", "Nadeem", "Sana",
+            "Waseem", "Baghdad", "Bayan", "KufiStandardGK", "Al Bayan",
+
+            // Linux Standard/Free Fonts
+            "DejaVu Sans", "DejaVu Serif", "FreeSans", "FreeSerif", "Ubuntu",
+            "Liberation Sans", "Liberation Serif", "Droid Arabic Naskh", "Droid Arabic Kufi", "KacstArt",
+            "KacstBook", "KacstDecorative", "KacstDigital", "KacstFarsi", "KacstLetter",
+            "KacstNaskh", "KacstOffice", "KacstPen", "KacstPoster", "KacstQurn",
+            "KacstScreen", "KacstTitle", "KacstTitleL", "mry_KacstQurn", "Nafees",
+
+            // Premium/Commercial/Popular Arabic Typefaces (often found on designer systems)
+            "DIN Next LT Arabic", "Frutiger Arabic", "Helvetica World", "Myriad Arabic", "Adobe Arabic",
+            "Boutros", "GE SS Two", "Hacen", "JF Flat", "HS Ishraq",
+            "SST Arabic", "Univers", "Optima", "Garamond", "Futura"
+        ];
+
+        const container = document.getElementById('font-container');
+
+        testFonts.forEach(fontName => {
+            const card = document.createElement('div');
+            card.className = 'font-card';
+            
+            const nameLabel = document.createElement('div');
+            nameLabel.className = 'font-name';
+            nameLabel.textContent = fontName;
+            
+            const sample = document.createElement('div');
+            sample.className = 'sample-text';
+            sample.style.fontFamily = `"${fontName}", sans-serif`;
+            sample.textContent = planets;
+            
+            card.appendChild(nameLabel);
+            card.appendChild(sample);
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>
