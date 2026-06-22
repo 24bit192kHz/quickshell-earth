@@ -359,19 +359,23 @@ PanelWindow {
     // ── Sun depth ────────────────────────────────────────
     // Depth handled by perspective projection above
 
-    // ── Textures ─────────────────────────────────────────
+    // ── Textures (synchronous low-res placeholders, async high-res) ──
+    Image { id: milkyWayLow; asynchronous: false; source: Qt.resolvedUrl("../assets/textures/milky_way_lowres.jpg"); sourceSize: Qt.size(1024, 512); visible: false }
     Image { id: milkyWayImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_stars_milky_way.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
 
+    Image { id: earthLow; asynchronous: false; source: Qt.resolvedUrl("../assets/textures/earth_lowres.jpg"); sourceSize: Qt.size(1024, 512); visible: false }
     Image { id: earthImg; asynchronous: true; source: root.solarState.activePlanet === "earth" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : (root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/8k_moon.jpg") : Qt.resolvedUrl("../assets/textures/2k_" + root.solarState.activePlanet + ".jpg")); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     Image { id: satelliteEarthImg; asynchronous: true; source: root.solarState.activePlanet === "moon" ? Qt.resolvedUrl("../assets/textures/earth_8k_opt.jpg") : ""; sourceSize: Qt.size(2048, 2048); mipmap: true; visible: false }
     
     
     Image { id: nightTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/night_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
+    Image { id: bumpTexLow; asynchronous: false; source: Qt.resolvedUrl("../assets/textures/elev_bump_lowres.jpg"); sourceSize: Qt.size(1024, 512); visible: false }
     Image { id: bumpTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/elev_bump_8k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
     Image { id: waterTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/water_8k.png"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
     
+    Image { id: cloudTexLow; asynchronous: false; source: Qt.resolvedUrl("../assets/textures/earth_clouds_lowres.jpg"); sourceSize: Qt.size(1024, 512); visible: false }
     Image { id: cloudTexSrc; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/8k_earth_clouds.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }
 
     Image { id: moonImg; asynchronous: true; source: Qt.resolvedUrl("../assets/textures/moon_2k.jpg"); sourceSize: Qt.size(4096, 2048); mipmap: true; visible: false }

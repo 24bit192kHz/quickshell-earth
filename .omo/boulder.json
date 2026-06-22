@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "active_work_id": "quickshell-optimization",
+  "works": {
+    "quickshell-optimization": {
+      "work_id": "quickshell-optimization",
+      "active_plan": ".omo/plans/quickshell-optimization.md",
+      "plan_name": "quickshell-optimization",
+      "session_ids": ["codex:ses_1140bbdf8ffe4KbjRvB7v3wOrP"],
+      "status": "active",
+      "worktree_path": null
+    }
+  }
+}
